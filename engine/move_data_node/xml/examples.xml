@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <book id="1">
+        <title>Python 入门指南</title>
+        <author>张三</author>
+    </book>
+    <book id="2">
+        <title>数据科学实战</title>
+        <author>李四</author>
+    </book>
+</root>

@@ -1,0 +1,20 @@
+instant_client_客户端下载：https://www.oracle.com/database/technologies/instant-client/downloads.html
+
+oracledb 使用教程：https://python-oracledb.readthedocs.io/en/latest/user_guide/connection_handling.html
+
+oceanbase python 官方连接教程：https://www.oceanbase.com/docs/enterprise-obci-cn-1000000003715932
+
+oceanbase python 官方连接教程:https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004801796
+
+OBCI 驱动：https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000881430
+
+
+
+重点：
+1： 要使用libobclient 版本 >= 2.2.11，obci 版本 >= 2.1.1  这2个库
+2： 参考教程里面的步骤准备好环境：https://www.oceanbase.com/docs/enterprise-obci-cn-1000000003715932
+3： 然后安装obci 库，安装完后，在/u01/obclient 目录下有 python目录下面，有个 cx_Oracle.xxxx.tar.gz 文件,
+    然后把这个cx_Oracle安装好后，就可以使用这个cx_Oracle 库连接 oceanbase 数据库了.
+
+
+

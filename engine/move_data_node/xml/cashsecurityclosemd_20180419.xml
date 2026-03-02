@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Securities xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Security>
+<SecurityID>300352  </SecurityID>
+<SecurityIDSource>102</SecurityIDSource>
+<Symbol>北信源                                    </Symbol>
+<EnglishName>PAB                                     </EnglishName>
+<SecurityType>1</SecurityType>
+<PrevClosePx>10.3000</PrevClosePx>
+<OpenPrice>10.2500</OpenPrice>
+<ClosePx>11.3000</ClosePx>
+<NumTrades>9339</NumTrades>
+<TotalVolumeTrade>38094687.00</TotalVolumeTrade>
+<TotalValueTrade>390119748.1900</TotalValueTrade>
+</Security>
+<Security>
+<SecurityID>300560  </SecurityID>
+<SecurityIDSource>102</SecurityIDSource>
+<Symbol>中富通                                    </Symbol>
+<EnglishName>FOUNTAIN                                </EnglishName>
+<SecurityType>1</SecurityType>
+<PrevClosePx>10.3000</PrevClosePx>
+<OpenPrice>10.2500</OpenPrice>
+<ClosePx>11.3000</ClosePx>
+<NumTrades>3984</NumTrades>
+<TotalVolumeTrade>6165942.00</TotalVolumeTrade>
+<TotalValueTrade>41446958.3800</TotalValueTrade>
+</Security>
+<Security>
+<SecurityID>000008  </SecurityID>
+<SecurityIDSource>102</SecurityIDSource>
+<Symbol>神州高铁                                    </Symbol>
+<EnglishName>CHSR                                    </EnglishName>
+<SecurityType>1</SecurityType>
+<PrevClosePx>10.3000</PrevClosePx>
+<OpenPrice>10.2500</OpenPrice>
+<ClosePx>11.3000</ClosePx>
+<NumTrades>6672</NumTrades>
+<TotalVolumeTrade>8441314.00</TotalVolumeTrade>
+<TotalValueTrade>96846883.0100</TotalValueTrade>
+</Security>
+<Security>
+<SecurityID>000009  </SecurityID>
+<SecurityIDSource>102</SecurityIDSource>
+<Symbol>中国宝安                                    </Symbol>
+<EnglishName>CHSR                                    </EnglishName>
+<SecurityType>1</SecurityType>
+<PrevClosePx>10.3000</PrevClosePx>
+<OpenPrice>10.2500</OpenPrice>
+<ClosePx>11.3000</ClosePx>
+<NumTrades>6672</NumTrades>
+<TotalVolumeTrade>8441314.00</TotalVolumeTrade>
+<TotalValueTrade>96846883.0100</TotalValueTrade>
+</Security>
+</Securities>
