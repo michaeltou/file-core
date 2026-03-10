@@ -5,18 +5,18 @@ from waitress import serve
 from engine.cnst.NodeType import *
 
 from engine.move_data_node.move_data_engine import move_data
-from engine.split.split_file_engine import split_file
-from engine.execute_sql_node.execute_sql_engine import execute_node_sql
-from engine.build_context_node.build_context_engine import build_context
+
+# from engine.execute_sql_node.execute_sql_engine import execute_node_sql
+# from engine.build_context_node.build_context_engine import build_context
 from engine.core.context import *
-from engine.check_node.check_node_engine import check_node
-from engine.cnst.StatusType import *
-from engine.cnst.PhaseType import *
+# from engine.check_node.check_node_engine import check_node
+# from engine.cnst.StatusType import *
+# from engine.cnst.PhaseType import *
 
 import engine.util.config as config
 import traceback
-import engine.util.performace as performace
-import engine.split.record as record
+# import engine.util.performace as performace
+# import engine.split.record as record
 import engine.util.log as log
 import engine.util.time as time
 import os
@@ -26,7 +26,7 @@ from ratelimit import limits, sleep_and_retry, RateLimitException
 from engine.util.md5 import get_file_md5
 from engine.util.redis.redis_util import RedisUtil
 from sqlalchemy import create_engine
-from engine.db.oracle_read_tool_db_util import execute_ddl_sql
+# from engine.db.oracle_read_tool_db_util import execute_ddl_sql
 
 # WAITRESS  Werkzeug  使用 Gunicorn 启动多个实例
 app = Flask(__name__)
@@ -187,24 +187,24 @@ def execute_read(read_command_json_str = None):
         read_data = {"dataList": data_list, "fieldNameList": field_name_list}
 
         end_time = get_local_millisecond_timestamp()
-        performace.insert_performance_log(context_instance=context_instance,
-                                          phase=PhaseType.ALL.value,
-                                          status=StatusType.SUCCESS.value,
-                                          message="success",
-                                          start_time=start_time,
-                                          end_time=end_time)
+        # performace.insert_performance_log(context_instance=context_instance,
+        #                                   phase=PhaseType.ALL.value,
+        #                                   status=StatusType.SUCCESS.value,
+        #                                   message="success",
+        #                                   start_time=start_time,
+        #                                   end_time=end_time)
         log.info('UUID: %s,父UUID: %s,读数请求处理成功,总体耗时：%s ms', my_uuid, parent_uuid, end_time-start_time)
         return build_success_result(read_data)
     except RateLimitException as e:
         message = 'uuid:%s,发生限流,读数请求处理失败,异常信息：%s' % (my_uuid, 'access limit is exceeded.')
         log.error(message)
         end_time = get_local_millisecond_timestamp()
-        performace.insert_performance_log(context_instance=context_instance,
-                                          phase=PhaseType.ALL.value,
-                                          status=StatusType.FAILED.value,
-                                          message=message,
-                                          start_time=start_time,
-                                          end_time=end_time)
+        # performace.insert_performance_log(context_instance=context_instance,
+        #                                   phase=PhaseType.ALL.value,
+        #                                   status=StatusType.FAILED.value,
+        #                                   message=message,
+        #                                   start_time=start_time,
+        #                                   end_time=end_time)
         return build_limit_error_result(f'access limit is exceeded.')
     except Exception as e:
         check_logic_result = context_instance.get('check_logic_result')
@@ -218,12 +218,12 @@ def execute_read(read_command_json_str = None):
             message = 'uuid:%s,读数请求处理失败,异常信息：%s' % (my_uuid, stack_trace)
         log.error(message)
         end_time = get_local_millisecond_timestamp()
-        performace.insert_performance_log(context_instance=context_instance,
-                                          phase=PhaseType.ALL.value,
-                                          status=StatusType.FAILED.value,
-                                          message=message,
-                                          start_time=start_time,
-                                          end_time=end_time)
+        # performace.insert_performance_log(context_instance=context_instance,
+        #                                   phase=PhaseType.ALL.value,
+        #                                   status=StatusType.FAILED.value,
+        #                                   message=message,
+        #                                   start_time=start_time,
+        #                                   end_time=end_time)
 
         return build_error_result(message)
 

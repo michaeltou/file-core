@@ -14,7 +14,7 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
 
     try:
         # 执行并发读取控制
-        concurrent_read_control(file_path_and_name)
+        #concurrent_read_control(file_path_and_name)
 
         # 默认使用simpledbfdm读取dbf文件的开关值
         default_switch_count = 100000
