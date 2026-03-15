@@ -10,8 +10,13 @@ engine/build_context_node/build_context_from_xml.py
 engine/check_node/__init__.py
 engine/check_node/check_file_engine.py
 engine/check_node/check_node_engine.py
+engine/clean/2.test_ocean_base_db_util.py
+engine/clean/3.test_ocean_base_db_util.py
+engine/clean/4.test_ocean_base_db_util.py
 engine/clean/__init__.py
 engine/clean/clean_engine.py
+engine/clean/test_engine.py
+engine/clean/test_ocean_base_db_util.py
 engine/cnst/BuildType.py
 engine/cnst/CheckLogicSwith.py
 engine/cnst/ColumnGetType.py
@@ -329,6 +334,7 @@ engine/util/performace/__init__.py
 engine/util/redis/__init__.py
 engine/util/redis/belong_local_cache_util.py
 engine/util/redis/redis_util.py
+engine/util/redis/redis_util_backup.py
 engine/util/redis/test.py
 engine/util/sql/SqlUtil.py
 engine/util/sql/__init__.py

@@ -113,6 +113,39 @@ def handle_exception(e):
 
 
 
+@app.route('/execute/script', methods=['POST'])
+def execute_script(script_command_json_str = None):
+    if script_command_json_str is None:
+        script_command = request.get_json()
+    else:
+        # 把 JSON 字符串转换回 Python 对象
+        script_command = json.loads(script_command_json_str)
+
+    script = script_command.get('script')
+    if script is None:
+        return build_error_result("脚本内容不能为空")
+    exec(script)
+    return build_success_result("script executed successfully.")
+
+# 从文件中读取所有的脚本，然后一次性执行
+@app.route('/execute/filesScript', methods=['POST'])
+def execute_file_script(script_command_json_str = None):
+    if script_command_json_str is None:
+        script_command = request.get_json()
+
+    file_path_and_name = script_command.get('file_path_and_name')
+    if file_path_and_name is None:
+        return build_error_result("文件路径不能为空")
+
+    script = '';
+    # 读取文件所有的内容，然后一次性执行
+    with open(file_path_and_name, 'r') as file:
+        script = script + file.read()
+    exec(script)
+    return build_success_result("script executed successfully.")
+
+
+
 @app.route('/execute/read', methods=['POST'])
 def execute_read(read_command_json_str = None):
     my_uuid = generate_uuid()

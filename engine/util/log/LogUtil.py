@@ -8,8 +8,8 @@ class LogUtil(object):
     print('config.get_root_path()=',config.get_root_path())
     root_path = config.get_root_path()
     parent_path = os.path.dirname(root_path)
-    log_path = os.path.join(parent_path, 'migrate-core-logs')
-    log_file = os.path.join(parent_path, 'migrate-core-logs', 'app.log')
+    log_path = os.path.join(parent_path, 'file-core-logs')
+    log_file = os.path.join(parent_path, 'file-core-logs', 'app.log')
     log_level = logging.INFO
     logger = None  # 类变量，用于存储日志记录器实例
 

@@ -1,3 +1,5 @@
+import pandas as pd
+
 from engine.core.migrate_core_engine import *
 from engine.cnst.ColumnGetType import ColumnGetType
 import engine.util.config as config

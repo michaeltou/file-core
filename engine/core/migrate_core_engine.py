@@ -1,14 +1,16 @@
+import os
 import time
 
 from engine.db.oceanbase.ocean_base_db_util import OceanBaseDbUtil
-from engine.db.oracle_read_tool_db_util import *
+
+import numpy as np
 
 from engine.filter.filter_engine import FilterEngine
 from engine.mapping.field_mapping import FieldMapping
 from engine.cnst.InvokeMode import InvokeMode
 from engine.clean.clean_engine import CleanEngine
 
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float
+from sqlalchemy import  Integer, String, Float
 from engine.cnst.FieldType import *
 import engine.util.log as log
 
@@ -112,7 +114,7 @@ class MigrateCoreEngine(object):
                 db_insert_chunk_size = 1000
 
             # oracle_engine = get_global_engine()
-            ocean_base_engine = OceanBaseDbUtil.get_engine();
+            ocean_base_engine = OceanBaseDbUtil.get_engine()
 
             if invoke_mode == InvokeMode.NORMAL.value:
                 # 普通模式下，将dataFrame数据插入数据库
@@ -148,7 +150,7 @@ class MigrateCoreEngine(object):
             end_time = time.time()
 
             execution_time = end_time - start_time
-            log.info("uuid: %s, 进程ID:%s,插入数据库总耗时：%s 秒,记录数:%s", my_uuid,os.getpid(),execution_time,len(target_df))
+            log.info("uuid: %s, 进程ID:%s,插入数据库总耗时：%s 秒,记录数:%s", my_uuid, os.getpid(),execution_time,len(target_df))
 
 
 def formate_datetime_column(df_head, field_mapping_config_list):

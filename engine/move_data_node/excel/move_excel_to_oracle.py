@@ -1,3 +1,5 @@
+import pandas as pd
+
 from engine.core.migrate_core_engine import *
 from xlsx2csv import Xlsx2csv
 import uuid

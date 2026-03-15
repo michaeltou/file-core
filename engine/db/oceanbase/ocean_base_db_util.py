@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 
 import engine.util.config as config
+import urllib.parse
 
 
 
@@ -21,10 +22,30 @@ class OceanBaseDbUtil:
     @staticmethod
     def get_engine():
         if OceanBaseDbUtil._engine is None:
-            ocean_base_connect_url = config.get_config_value("read_tool.oceanbase.connect_url")
+            # 1. 配置参数
+            username = config.get_config_value("read_tool.oceanbase.username")
+            password = config.get_config_value("read_tool.oceanbase.password")
+            host = config.get_config_value("read_tool.oceanbase.host")
+            port = config.get_config_value("read_tool.oceanbase.port")
+            database = config.get_config_value("read_tool.oceanbase.database")
+
+            # 2. 转义密码特殊字符
+            username = urllib.parse.quote_plus(username)
+            print('用户名是:'+username)
+            password = urllib.parse.quote_plus(password)
+
+            # 3. 拼接 URL（service_name = 集群.租户.数据库）
+            CONN_URL = (
+                f"oracle+cx_oracle://{username}:{password}@{host}:{port}/{database}"
+            )
+
+
             ocean_base_pool_size = config.get_config_value("read_tool.oceanbase.pool_size")
+
+
+
             OceanBaseDbUtil._engine = create_engine(
-                ocean_base_connect_url,
+                CONN_URL,
                 pool_size=ocean_base_pool_size, # 连接池大小
                 max_overflow=20,  # 额外可溢出连接
                 echo=False  # 打印实际发出的 SQL，调试用

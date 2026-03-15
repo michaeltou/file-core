@@ -15,7 +15,11 @@ read_tool: # 读数工具专有配置
     #FD
     connect_url: oracle+oracledb://FD20180816C:FD20180816C@10.20.28.74:1521/orcl
   oceanbase:
-    connect_url: oracle+cx_oracle://DOUMING:$tm1Alove$tm1Alove@t7fgjby4vhzq8-mi.aliyun-cn-shenzhen-internet.oceanbase.cloud:1521/DOUMING
+    username: Y7PHFUND_REALTIME@UAT_GZ01#UAT_Cluster05
+    password: aaAA11##2025
+    host: uatobc05.phfund.com.cn
+    port: 2883
+    database: Y7PHFUND_REALTIME
     pool_size: 3  # 连接池大小
 
 dbf:
@@ -39,25 +43,13 @@ limit:
 
 
 redis:
+  cluster: true
+  nodes: 172.22.4.140:6379,172.22.4.141:6379,172.22.4.142:6379
   # Redis服务器地址
-  host: 10.20.146.65
+  host:
   # Redis服务器连接端口
-  port: 6379
+  port:
   # Redis服务器连接密码（默认为空）
-  password: redis@123
+  password:
   # Redis数据库索引（默认为0）
-  database: 0
-
-split: #(拆分工具专有配置)
-  gz_db: # 估值数据库
-    mode: thick #oracle连接模式，默认thin模式。如果要使用thick模式，请修改为thick。oracle11g必须使用thick模式并按照oracle客户端。
-#    connect_url: oracle+oracledb://FA30_DEV_65:FA30_DEV_65@10.20.146.67:1521/orcl #拆分工具获取全量产品，请根据实际情况修改
-    connect_url: oracle+oracledb://fa6_base_trunk:hshome123@10.20.18.219:1521/orcl #拆分工具获取全量产品，请根据实际情况修改
-  auto_db: # 自动化估值数据库
-    mode: thick #oracle连接模式，默认thin模式。如果要使用thick模式，请修改为thick。oracle11g必须使用thick模式并按照oracle客户端。
-    connect_url: oracle+oracledb://fam_dev_65:fam_dev_65@10.20.146.67:1521/orcl #拆分工具获取全量产品，请根据实际情况修改
-
-  # 对于不在文件出现的归属，是否拆分一个空文件. 默认为True:拆分空文件. False:不拆分空文件.
-  split_empty_file_for_none_belong: False
-  # electCheck.xml接口id列表,逗号分隔。8001-8002-8003-8004-8005-8006-9535为一个接口。
-  elect_check_xml_interface_id_list: 8001-8002-8003-8004-8005-8006-9535,
+  database:

@@ -1,7 +1,7 @@
+import pandas as pd
 from simpledbfdm import Dbf5
 
-from engine.move_data_node.dbf.fast_dbfread.faster_dbfreader import FasterDBFReader
-from engine.move_data_node.dbf.fast_simpledbf.faster_simpledbf import FasterDbf5
+
 from engine.core.migrate_core_engine import *
 import engine.util.config as config
 from dbfreaddm import DBF as DBFREAD_DBF
@@ -90,8 +90,9 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
 
 
     finally:
+        pass
         # 释放并发读取锁
-        release_read_lock(file_path_and_name)
+        #release_read_lock(file_path_and_name)
 
 
 
