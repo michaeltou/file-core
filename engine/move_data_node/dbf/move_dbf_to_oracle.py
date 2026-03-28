@@ -22,6 +22,7 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
         default_switch_count = 100000
         using_multi_process_switch_count = config.get_config_value('dbf.using_multi_process_switch_count',  default_switch_count)
 
+        chunk_size = config.get_config_value('dbf.chunk_size',  10000)
         # 创建读数引擎
         migrate_core_engine = MigrateCoreEngine()
         filter_logic = flow_node_dbf_config.get('filterLogic')
@@ -52,15 +53,32 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
             # 大文件请求场景 & 接口ID为000001预热接口场景 --------发起大文件读取-----end----------
             else:
                 # 正常读取dbf文件-----------------------start--------------------------------
-                my_df = my_dbf.to_dataframe()
-                end_time = time.time()
-                log.info("uuid: %s,读取dbf块文件耗时:%s秒, 记录数：%s", my_uuid, end_time - start_time, len(my_df))
-                # 调用核心引擎，将dataframe数据插入数据库
-                migrate_core_engine.dataframe_to_oracle(flow_node_dbf_config,
-                                                        my_df, filter_logic,
-                                                        target_interface_table,
-                                                        field_mapping_config_list,
-                                                        context_instance)
+                # 这里可以指定chunksize,通过chunksize 指定每次读取的块个数。
+
+                # my_df = my_dbf.to_dataframe()
+                # end_time = time.time()
+                # log.info("uuid: %s,读取dbf块文件耗时:%s秒, 记录数：%s", my_uuid, end_time - start_time, len(my_df))
+                # # 调用核心引擎，将dataframe数据插入数据库
+                # migrate_core_engine.dataframe_to_oracle(flow_node_dbf_config,
+                #                                         my_df, filter_logic,
+                #                                         target_interface_table,
+                #                                         field_mapping_config_list,
+                #                                         context_instance)
+
+
+                my_df_reader = my_dbf.to_dataframe(chunk_size)
+                for my_df in my_df_reader:
+                    start_time = time.time()
+                    # 调用核心引擎，将dataframe数据插入数据库
+                    migrate_core_engine.dataframe_to_oracle(flow_node_dbf_config,
+                                                            my_df, filter_logic,
+                                                            target_interface_table,
+                                                            field_mapping_config_list,
+                                                            context_instance)
+                    end_time = time.time()
+                    log.info("uuid: %s,处理dbf块文件耗时:%s秒, 记录数：%s", my_uuid, end_time - start_time, len(my_df))
+
+
                 # 正常读取dbf文件-----------------------end--------------------------------
 
         except AssertionError as e:  # 如果出现这个错误，说明使用simpledbf读取dbf文件出现问题,尝试使用dbfread库读取dbf文件
