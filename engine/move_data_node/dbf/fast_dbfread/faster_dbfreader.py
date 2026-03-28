@@ -6,11 +6,14 @@ import pandas as pd
 import time
 import datetime
 import struct
-from engine.move_data_node.file_process_pool import get_global_pool, BATCH_PROCESS_COUNT
 
+import bigfile_engine.util.config as config
+from multiprocessing import Pool
 
 from dbfreaddm.struct_parser import StructParser
 from engine.core.migrate_core_engine import *
+
+BATCH_PROCESS_COUNT = config.get_config_value("read_tool.file.batch.process.pool.size",4)
 
 DBFHeader = StructParser(
     'DBFHeader',
@@ -173,7 +176,7 @@ def parse_record(read, encoding, fields):
     return one_decoded_record
 
 
-def one_process_do_task(file_path_and_name, encoding, start_index, end_index,
+def one_process_do_task_for_dbfreader(file_path_and_name, encoding, start_index, end_index,
                          my_uuid,
                         flow_node_dbf_config,
                         filter_logic,
@@ -281,8 +284,18 @@ class FasterDBFReader(DBFReaderDBF):
             self.num_fields = (self.len_header - 33) // 32
 
         # 使用全局进程池
-        self.pool = get_global_pool()
+        self.pool = self.gen_pool()
 
+    @staticmethod
+    def gen_pool(process_count=BATCH_PROCESS_COUNT):
+        local_pool = Pool(processes=BATCH_PROCESS_COUNT)
+        return local_pool
+
+    def close_global_pool(self):
+        """关闭全局进程池"""
+        self.pool.close()  # 关闭进程池，不再接受新任务
+        self.pool.join()  # 等待所有任务完成
+        self.pool = None  # 将全局变量重置为None
 
     def push_record_to_db_with_multi_process(self,my_uuid,
                                              flow_node_dbf_config,
@@ -328,10 +341,10 @@ class FasterDBFReader(DBFReaderDBF):
         # 创建包含4个工作进程的进程池
 
         # 提交任务到进程池
-        self.pool.starmap(one_process_do_task, tuple_param_list)
+        self.pool.starmap(one_process_do_task_for_dbfreader, tuple_param_list)
         log.info('uuid: %s, 进程池提交任务完成，总耗时 %s 秒', my_uuid, time.time() - start_time_submit)
         # print("提交任务到进程池，总耗时", time.time() - start_time_submit, "秒")
-
+        self.close_global_pool()
 
 if __name__ == '__main__':
     file_path = "JSMX_02.DBF"

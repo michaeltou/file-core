@@ -3,27 +3,28 @@ import pandas as pd
 from simpledbfdm import Dbf5
 
 import struct
-from multiprocessing import Pool, freeze_support
-import time
-import os
 from engine.core.migrate_core_engine import *
 #https://github.com/rnelsonchem/simpledbf
-from engine.move_data_node.file_process_pool import get_global_pool,BATCH_PROCESS_COUNT
+import bigfile_engine.util.config as config
+from multiprocessing import Pool, freeze_support
 
+# 批量处理进程池大小
+BATCH_PROCESS_COUNT = config.get_config_value("read_tool.file.batch.process.pool.size",4)
 
-def one_process_do_task(file_path_and_name, encoding,start_index, end_index
+def one_process_do_task_for_simpledbf(file_path_and_name, encoding,start_index, end_index
                             ,my_uuid,
                             flow_node_dbf_config,
                             filter_logic,
                             target_interface_table,
                             field_mapping_config_list,
                             context_instance
-
                         ):
+
 
     start_time = time.time()
     log.info('my_uuid %s 进程id %s 开始处理数据，记录个数是 %s, start_index= %s, end_index= %s',
              my_uuid,os.getpid(), end_index - start_index + 1 ,start_index, end_index )
+
     with open(file_path_and_name, 'rb') as file_for_one_process:
         num_rec,  len_header = struct.unpack('<xxxxLH22x',
                                                     file_for_one_process.read(32))
@@ -202,7 +203,7 @@ class FasterDbf5(Dbf5):
 
 
         # 使用全局进程池
-        self.pool = get_global_pool()
+        self.pool = self.gen_pool()
 
         # 内存映射
         # file_path_and_name = dbf
@@ -252,7 +253,16 @@ class FasterDbf5(Dbf5):
         if hasattr(self, 'f') and self.f:
             self.f.close()
 
+    @staticmethod
+    def gen_pool(process_count = BATCH_PROCESS_COUNT):
+        local_pool = Pool(processes=BATCH_PROCESS_COUNT)
+        return local_pool
 
+    def close_global_pool(self):
+        """关闭全局进程池"""
+        self.pool.close()  # 关闭进程池，不再接受新任务
+        self.pool.join()  # 等待所有任务完成
+        self.pool = None  # 将全局变量重置为None
 
 
 
@@ -296,10 +306,11 @@ class FasterDbf5(Dbf5):
 
         start_time_submit = time.time()
         # 提交任务到进程池
-        self.pool.starmap(one_process_do_task, tuple_param_list)
+        self.pool.starmap(one_process_do_task_for_simpledbf, tuple_param_list)
 
         # print("提交任务到进程池，总耗时", time.time() - start_time_submit, "秒")
         log.info("uuid:%s, 提交任务到进程池，总耗时 %s 秒", my_uuid,time.time() - start_time_submit)
+        self.close_global_pool()
 
         return None
 

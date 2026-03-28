@@ -6,7 +6,7 @@ bind = "0.0.0.0:27777"
 
 
 # 获取工作进程数量，这个workers名字不能改，是内置变量名称
-workers =  2 # multiprocessing.cpu_count()
+workers =  1 # multiprocessing.cpu_count()
 
 print("系统的CPU核数:", multiprocessing.cpu_count())
 print("启动进程数:", workers)

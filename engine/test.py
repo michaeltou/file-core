@@ -1,4 +1,5 @@
 import pandas as pd
+import engine.util.log as log
 
 #构造一个dataframe ，并且打印出它的内容
 df = pd.DataFrame({
@@ -7,4 +8,4 @@ df = pd.DataFrame({
     'AGE': [25, 30, 35]
 })
 
-print(df)
+log.info('df的内容是：%s', df)

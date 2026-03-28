@@ -4,7 +4,7 @@ from flask import Flask, request, render_template
 from waitress import serve
 from engine.cnst.NodeType import *
 
-from engine.move_data_node.move_data_engine import move_data
+from engine.move_data_node.move_data_engine import move_data,move_bigfile_data
 
 # from engine.execute_sql_node.execute_sql_engine import execute_node_sql
 # from engine.build_context_node.build_context_engine import build_context
@@ -268,15 +268,12 @@ def execute_read_big_file(read_command_json_str = None):
     # 这个接口专门用于读取大文件，通过在上下文标记为读大文件标志，在后面执行时，可以做相应大文件处理
     context_instance.set('[READ_BIG_FILE_FLAG]', True)
 
-    # if read_command_json_str is None:
-    #     read_command = request.get_json()
-    # else:
-    #     # 把 JSON 字符串转换回 Python 对象
-    #     read_command = json.loads(read_command_json_str)
+    if read_command_json_str is None:
+        read_command = request.get_json()
+    else:
+        # 把 JSON 字符串转换回 Python 对象
+        read_command = json.loads(read_command_json_str)
 
-    # read_command_json_str  = json.dumps(read_command)
-    # log.info('UUID: %s,接收到读数请求,读数指令read_command是: %s', my_uuid, read_command_json_str)
-    read_command = request.get_json()
     # 获取当前进程号
     process_id = os.getpid()
     # 获取当前线程号
@@ -288,24 +285,29 @@ def execute_read_big_file(read_command_json_str = None):
     file_path_and_name = read_command.get('filePathAndName')
 
     read_rule = read_command.get('readRule')
-    interface_id = read_command['interfaceId']
-    interface_name = read_command.get('interfaceName')
-    invoke_mode = read_command.get('invokeMode')
+    encoding = read_command.get('encoding', 'utf-8')
+    file_id = read_command.get('fileId')
+    file_name = read_command.get('fileName')
+
     need_rate_limit_control = read_command.get('needRateLimitControl')
     fund_id = read_command.get('fundId')
     fund_code = read_command.get('fundCode')
-    business_date = read_command['businessDate']
-    flow_node_list = read_rule['flowNodeList']
+    business_date = read_command.get('businessDate')
+    context_map = read_command.get('contextMap')
+    flow_node_list = read_rule.get('flowNodeList')
+    invoke_mode = read_command.get('invokeMode')
 
-
+    context_instance = Context()
     context_instance.set('[FUND_ID]', fund_id)
     context_instance.set('[FUND_CODE]', fund_code)
     context_instance.set('[BUSINESS_DATE]', business_date)
-    context_instance.set('[INTERFACE_ID]', interface_id)
-    context_instance.set('[INTERFACE_NAME]', interface_name)
+    context_instance.set('[INTERFACE_ID]', file_id)
+    context_instance.set('[INTERFACE_NAME]', file_name)
     context_instance.set('[FILE_PATH_AND_NAME]', file_path_and_name)
     context_instance.set('[INVOKE_MODE]', invoke_mode)
     context_instance.set('[UUID]', my_uuid)
+    context_instance.set('[READ_COMMAND]', read_command)
+    context_instance.set('[ENCODING]', encoding)
 
 
 
@@ -315,15 +317,10 @@ def execute_read_big_file(read_command_json_str = None):
 
     # ---------end
     try:
-        # 根据外部传入的限流配置，决定是否进行限流,need_rate_limit_control为1时，表示需要限流,为2时表示不需要限流
-        if need_rate_limit_control is not None and need_rate_limit_control == 1:
-            api_limit_call()
-        if need_rate_limit_control is None:
-            api_limit_call()
 
         for flow_node in flow_node_list:
             file_type = flow_node.get('fileFmt')
-            move_data(file_type, file_path_and_name, flow_node, context_instance)
+            move_bigfile_data(file_type, file_path_and_name, flow_node, context_instance)
 
         data_list = context_instance.get('[__DATA_LIST__]')
         field_name_list = context_instance.get('[__FIELD_NAME_LIST__]')

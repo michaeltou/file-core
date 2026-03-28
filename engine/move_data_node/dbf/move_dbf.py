@@ -7,6 +7,11 @@ def move_dbf(flow_node, file_path_and_name, flow_node_dbf_config, field_mapping_
     # Move DBF file to Oracle
     move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, field_mapping_config_list, context_instance)
 
+def move_bigfile_dbf(flow_node, file_path_and_name, flow_node_dbf_config, field_mapping_config_list, context_instance):
+    # Move DBF file to Oracle
+    move_bigfile_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, field_mapping_config_list, context_instance)
+
+
 
 def my_test():
     file_type = FileType.DBF.value
