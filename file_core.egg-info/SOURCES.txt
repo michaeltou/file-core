@@ -35,6 +35,7 @@ engine/core/ContextTest.py
 engine/core/Test.py
 engine/core/__init__.py
 engine/core/context.py
+engine/core/file_process_pool.py
 engine/core/migrate_core_engine.py
 engine/db/SourceDb.py
 engine/db/__init__.py
@@ -208,6 +209,7 @@ engine/move_data_node/dbf/fast_dbfread/test2.py
 engine/move_data_node/dbf/fast_dbfread/test_for_yield.py
 engine/move_data_node/dbf/fast_dbfread/test_for_yield_v2.py
 engine/move_data_node/dbf/fast_dbfread/test_for_yield_v3.py
+engine/move_data_node/dbf/fast_simpledbf/TestMultiProcess.py
 engine/move_data_node/dbf/fast_simpledbf/__init__.py
 engine/move_data_node/dbf/fast_simpledbf/faster_simpledbf.py
 engine/move_data_node/dbfile/__init__.py

@@ -30,8 +30,8 @@ def move_data(file_type, file_path_and_name, flow_node, context_instance):
             flow_node_excel_config = flow_node['fileExcelParseRuleDTO']
             move_excel(flow_node, file_path_and_name, flow_node_excel_config, field_mapping_config_list, context_instance)
         elif file_type == FileType.CSV.value:
-            # flow_node_csv_config = flow_node['flowNodeCsvConfig']
-            # move_csv(flow_node, file_path_and_name, flow_node_csv_config, field_mapping_config_list, context_instance)
+            flow_node_csv_config = flow_node['fileCsvParseRuleDTO']
+            move_csv(flow_node, file_path_and_name, flow_node_csv_config, field_mapping_config_list, context_instance)
             pass
         else:
             pass
