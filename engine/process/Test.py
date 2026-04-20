@@ -17,3 +17,5 @@ print(dynamic_logic)
 person = {'name': 'Alice', 'age': 30}
 
 print(person.get('gender'))
+
+print('here1')

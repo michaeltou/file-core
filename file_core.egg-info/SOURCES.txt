@@ -64,6 +64,7 @@ engine/db/oceanbase/test_ob_oracle_with_cx_oracle.py
 engine/db/oceanbase/test_sqlalchemy_with_cx_oracle_v1.py
 engine/db/oceanbase/test_sqlalchemy_with_cx_oracle_v2.py
 engine/db/oceanbase/test_write_df_to_db_wth_cx_oracle.py
+engine/db/oceanbase/test_write_df_to_db_wth_cx_oracle_with_timestamp.py
 engine/execute_sql_node/__init__.py
 engine/execute_sql_node/execute_sql_engine.py
 engine/execute_sql_node/test.py

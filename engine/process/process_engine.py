@@ -2,6 +2,7 @@ from engine.cnst.FieldType import *
 from engine.cnst.ProcessLogicType import *
 from engine.db.oracle_read_tool_db_util import *
 from datetime import datetime
+import pandas as pd
 
 class ProcessEngine:
     def __init__(self):
@@ -28,13 +29,21 @@ class ProcessEngine:
             # 按照指定格式，进行日期转换
             df[source_field] = df[source_field].apply(my_parse_date, point_format=date_format)
 
+            try:
+                # 先按照字符串的方式和指定的格式，进行数据转换
+                df[source_field] = pd.to_datetime(df[source_field])
+            except ValueError as e:
+                # 如果转换失败，则按照混合格式进行转换（自动失败日期格式，如果无法转换，则会置为空）
+                df[source_field] = pd.to_datetime(df[source_field], format='mixed', errors='coerce')
+
+
             # try:
             #     # 先按照字符串的方式和指定的格式，进行数据转换
             #      df[source_field] = pd.to_datetime(df[source_field], format=date_format)
             # except ValueError as e:
             #     # 如果转换失败，则按照混合格式进行转换（自动失败日期格式，如果无法转换，则会置为空）
             #     df[source_field] = pd.to_datetime(df[source_field], format='mixed', errors='coerce')
-            #
+
 
         # 2 再根据配置的[加工逻辑]对原始dataFrame的字段进行处理
         if process_logic_type is None or process_logic is None or process_logic.strip() == '':  # 没有配置加工逻辑，直接返回
@@ -80,3 +89,9 @@ def my_parse_date(date_str, point_format='%Y-%m-%d'):
                 # 如果解析失败，则尝试下一个格式
                 continue
         return None
+
+if __name__ == '__main__':
+    my_date_str = '2024-01-01'
+    my_date_obj = my_parse_date(my_date_str)
+    my_date_obj = pd.to_datetime(my_date_obj)
+    print(my_date_obj)

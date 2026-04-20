@@ -7,7 +7,7 @@ import time
 import datetime
 import struct
 
-import bigfile_engine.util.config as config
+import engine.util.config as config
 from multiprocessing import Pool
 
 from dbfreaddm.struct_parser import StructParser

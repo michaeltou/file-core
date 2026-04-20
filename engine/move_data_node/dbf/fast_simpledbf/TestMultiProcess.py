@@ -4,7 +4,7 @@ from multiprocessing import Pool, freeze_support
 from threading import Thread
 from time import sleep
 
-import bigfile_engine.util.config as config
+import engine.util.config as config
 from cx_Oracle import Object
 
 # 批量处理进程池大小

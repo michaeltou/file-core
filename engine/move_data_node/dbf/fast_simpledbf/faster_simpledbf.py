@@ -5,7 +5,7 @@ from simpledbfdm import Dbf5
 import struct
 from engine.core.migrate_core_engine import *
 #https://github.com/rnelsonchem/simpledbf
-import bigfile_engine.util.config as config
+import engine.util.config as config
 from multiprocessing import Pool, freeze_support
 
 # 批量处理进程池大小
