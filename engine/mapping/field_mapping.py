@@ -1,4 +1,4 @@
-
+import uuid
 
 import pandas as pd
 from engine.process.process_engine import ProcessEngine
@@ -32,7 +32,12 @@ class FieldMapping:
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
-
+            elif source_field == '[UUID]':
+                df['[UUID]'] = df.apply(lambda _: str(uuid.uuid4()), axis=1)
+                ProcessEngine.process_process_logic(df, source_field, process_logic, process_logic_type, field_type,
+                                                    date_format)
+                #  2 将处理后的数据，赋值给目标dataFrame
+                result_df[target_field] = df[source_field]
             else:  # 非'RECNUM'字段的处理
                 # 保留原始值
                 original_source_field = source_field
