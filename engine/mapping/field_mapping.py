@@ -33,7 +33,7 @@ class FieldMapping:
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
             elif source_field == '[UUID]':
-                df['[UUID]'] = df.apply(lambda _: str(uuid.uuid4()), axis=1)
+                df['[UUID]'] = df.apply(lambda _: str(uuid.uuid4()).replace('-', ''), axis=1)
                 ProcessEngine.process_process_logic(df, source_field, process_logic, process_logic_type, field_type,
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
