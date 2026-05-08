@@ -62,6 +62,7 @@ def txt_to_dataframe_reader_for_separator(flow_node_txt_config, file_path_and_na
     # txt头部文件所在行，这里设置为None，通过column_names来指定
     txt_header_line = None
     txt_skip_rows = flow_node_txt_config['skipRows']
+    txt_skip_rows = str(txt_skip_rows)
 
     if txt_skip_rows.isdigit():
         txt_skip_rows = int(txt_skip_rows)
