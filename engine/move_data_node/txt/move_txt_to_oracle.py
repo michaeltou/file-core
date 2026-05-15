@@ -14,6 +14,8 @@ def move_txt_to_oracle(flow_node, file_path_and_name, flow_node_txt_config, fiel
 
     column_get_type = flow_node_txt_config.get('columnGetType')
 
+    CleanEngine.process_clean_before_import(flow_node_txt_config, context_instance)
+
     if column_get_type == ColumnGetType.SEPERATOR.value:
         # 获取文件的大小，如果文件大小大于100M,则分块读取
         file_size = os.path.getsize(file_path_and_name)
@@ -82,6 +84,8 @@ def txt_to_dataframe_reader_for_separator(flow_node_txt_config, file_path_and_na
     txt_separator = flow_node_txt_config.get('separator')
 
     total_column_count = flow_node_txt_config.get('totalColumnCount')
+    total_column_count = str(total_column_count)
+
     if total_column_count.isdigit():
         total_column_count = int(total_column_count)
     else:

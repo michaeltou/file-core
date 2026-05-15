@@ -10,7 +10,7 @@ import urllib.parse
 
 
 
-class OceanBaseDbUtil:
+class OceanBaseMultiProcessDbUtil:
     """
     Oracle 连接池，
     1：可以获取engine和session（单例模式），
@@ -20,50 +20,47 @@ class OceanBaseDbUtil:
     _session_maker = None
 
     @staticmethod
-    def get_engine():
-        if OceanBaseDbUtil._engine is None:
-            # 1. 配置参数
-            username = config.get_config_value("read_tool.oceanbase.username")
-            password = config.get_config_value("read_tool.oceanbase.password")
-            host = config.get_config_value("read_tool.oceanbase.host")
-            port = config.get_config_value("read_tool.oceanbase.port")
-            database = config.get_config_value("read_tool.oceanbase.database")
+    def get_one_process_engine():
 
-            # 2. 转义密码特殊字符
-            username = urllib.parse.quote_plus(username)
-            print('用户名是:'+username)
-            password = urllib.parse.quote_plus(password)
+        # 1. 配置参数
+        username = config.get_config_value("read_tool.oceanbase.username")
+        password = config.get_config_value("read_tool.oceanbase.password")
+        host = config.get_config_value("read_tool.oceanbase.host")
+        port = config.get_config_value("read_tool.oceanbase.port")
+        database = config.get_config_value("read_tool.oceanbase.database")
 
-            # 3. 拼接 URL（service_name = 集群.租户.数据库）
-            CONN_URL = (
-                f"oracle+cx_oracle://{username}:{password}@{host}:{port}/{database}"
-            )
+        # 2. 转义密码特殊字符
+        username = urllib.parse.quote_plus(username)
+        print('用户名是:'+username)
+        password = urllib.parse.quote_plus(password)
 
-
-            ocean_base_pool_size = config.get_config_value("read_tool.oceanbase.pool_size")
+        # 3. 拼接 URL（service_name = 集群.租户.数据库）
+        CONN_URL = (
+            f"oracle+cx_oracle://{username}:{password}@{host}:{port}/{database}"
+        )
 
 
+        ocean_base_pool_size = 1 #config.get_config_value("read_tool.oceanbase.pool_size")
 
-            OceanBaseDbUtil._engine = create_engine(
-                CONN_URL,
-                pool_size=ocean_base_pool_size, # 连接池大小
-                max_overflow=20,  # 额外可溢出连接
-                pool_recycle=60 * 30,  # 30 minutes，默认如果不设置，连接将不回收重新连接，有连接被服务端数据库关闭，连接是无效的风险。
-                pool_timeout=30,  # 指定了从连接池中获取连接的超时时间，单位是秒。
-                echo=False  # 打印实际发出的 SQL，调试用
-            )
 
-        return OceanBaseDbUtil._engine
+
+        one_process_engine = create_engine(
+            CONN_URL,
+            pool_size=ocean_base_pool_size, # 连接池大小
+            echo=False  # 打印实际发出的 SQL，调试用
+        )
+
+        return one_process_engine
 
     @staticmethod
     def get_session():
-        if OceanBaseDbUtil._session_maker is None:
-            OceanBaseDbUtil._session_maker = sessionmaker(bind=OceanBaseDbUtil.get_engine())
-        return OceanBaseDbUtil._session_maker()
+        if OceanBaseMultiProcessDbUtil._session_maker is None:
+            OceanBaseMultiProcessDbUtil._session_maker = sessionmaker(bind=OceanBaseMultiProcessDbUtil.get_engine())
+        return OceanBaseMultiProcessDbUtil._session_maker()
 
     @staticmethod
     def execute_dml_sql(sql, params=None):
-        with OceanBaseDbUtil.get_session() as session:
+        with OceanBaseMultiProcessDbUtil.get_session() as session:
             try:
                 processed_params = convert_int64_to_int(params)
                 session.execute(text(sql), processed_params)
@@ -93,7 +90,7 @@ class OceanBaseDbUtil:
         # 执行SQL查询，并传递参数
         result = session.execute(txt(sql), params)
         """
-        with OceanBaseDbUtil.get_session() as session:
+        with OceanBaseMultiProcessDbUtil.get_session() as session:
             result = session.execute(text(sql), params)
             column_names = result.keys()
             column_names = [item.upper() for item in column_names]
@@ -121,7 +118,7 @@ def execute_auto_query_sql(sql, params=None):
     # 执行SQL查询，并传递参数
     result = session.execute(txt(sql), params)
     """
-    with OceanBaseDbUtil.get_session() as session:
+    with OceanBaseMultiProcessDbUtil.get_session() as session:
         result = session.execute(text(sql), params)
         column_names = result.keys()
         column_names = [item.upper() for item in column_names]
@@ -141,7 +138,7 @@ def convert_int64_to_int(params):
 
 
 def execute_auto_get_all_product_dml_sql(sql, params=None):
-    with OceanBaseDbUtil.get_session() as session:
+    with OceanBaseMultiProcessDbUtil.get_session() as session:
         try:
             processed_params = convert_int64_to_int(params)
             session.execute(text(sql), processed_params)

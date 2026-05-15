@@ -28,13 +28,13 @@ class FieldMapping:
                 df['[RECNUM]'] = df.reset_index().index + 1
                 # result_df[target_field] = df['[RECNUM]']
                 #  1 按照配置的加工逻辑处理处理源dataframe数据
-                ProcessEngine.process_process_logic(df, source_field, process_logic, process_logic_type, field_type,
+                ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type,
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
             elif source_field == '[UUID]':
                 df['[UUID]'] = df.apply(lambda _: str(uuid.uuid4()).replace('-', ''), axis=1)
-                ProcessEngine.process_process_logic(df, source_field, process_logic, process_logic_type, field_type,
+                ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type,
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
@@ -67,7 +67,7 @@ class FieldMapping:
                 # 如果配置的源字段在源文件中存在，则按照下面的方式处理
                 if source_field in column_names_in_files:
                     #  1 按照配置的加工逻辑处理处理源dataframe数据
-                    ProcessEngine.process_process_logic(df, source_field, process_logic, process_logic_type, field_type, date_format)
+                    ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format)
                     #  2 将处理后的数据，赋值给目标dataFrame
                     result_df[target_field] = df[source_field]
 
@@ -78,7 +78,7 @@ class FieldMapping:
                     #
                     df[source_field] = context_value
                     # 1 按照配置的加工逻辑处理处理源dataframe数据
-                    ProcessEngine.process_process_logic(df, source_field, process_logic, process_logic_type, field_type, date_format)
+                    ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format)
                     # 2 将处理后的数据，赋值给目标dataFrame
                     result_df[target_field] = df[source_field]
 

@@ -1,15 +1,20 @@
+import time
+
 from engine.cnst.FieldType import *
 from engine.cnst.ProcessLogicType import *
 from engine.db.oracle_read_tool_db_util import *
 from datetime import datetime
 import pandas as pd
+import engine.util.log as log
 
 class ProcessEngine:
     def __init__(self):
         pass
 
     @staticmethod
-    def process_process_logic(df, source_field, process_logic, process_logic_type, field_type, date_format):
+    def process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format):
+        process_start_time = time.time()
+        my_uuid = context_instance.get('[UUID]')
         # 1 对dataFrame进行预处理（按照类型进行转换，去除空格，按照时间格式进行转换）
         if field_type == FieldType.DECIMAL.value:
             df[source_field] = pd.to_numeric(df[source_field], errors='coerce')
@@ -59,6 +64,10 @@ class ProcessEngine:
                 exec(process_logic)
             else:
                 raise RuntimeError("未知的加工逻辑类型")
+
+        process_end_time = time.time()
+        log.info('UUID: %s,字段 %s 的加工逻辑耗时：%s s', my_uuid, source_field, process_end_time-process_start_time)
+
 
 # 能自动失败日期格式，如果无法转换，则会置为空字符串
 def my_parse_date(date_str, point_format='%Y-%m-%d'):

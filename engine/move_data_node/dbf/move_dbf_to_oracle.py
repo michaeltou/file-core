@@ -32,11 +32,11 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
 
         try:
             log.info("uuid: %s,开始使用simpledbfdm读取dbf文件", my_uuid)
-            start_time = time.time()
+
 
             my_dbf = Dbf5(file_path_and_name, codec='gbk')
-            end_time = time.time()
-            log.info("uuid: %s,加载dbf文件耗时:%s秒, 记录数：%s", my_uuid, end_time - start_time, my_dbf.numrec)
+
+            CleanEngine.process_clean_before_import(flow_node_dbf_config, context_instance)
 
             # 大文件请求场景 & 接口ID为000001预热接口场景 --------发起大文件读取-----start----------
 
@@ -47,6 +47,10 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
                 #invoke_read_big_file(read_command, my_uuid)
                 # 这个接口专门用于读取大文件，通过在上下文标记为读大文件标志，在后面执行时，可以做相应大文件处理
                 context_instance.set('[READ_BIG_FILE_FLAG]', True)
+                # log.info("uuid:%s,大文件读取场景-进行数据清理", my_uuid)
+                # # 导入文件前，执行清理逻辑
+                # CleanEngine.process_clean_before_import(flow_node_dbf_config, context_instance)
+
                 move_bigfile_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, field_mapping_config_list, context_instance)
                 # 不能把return去掉，重要！重要！重要！的事情说3遍！
                 return
@@ -67,16 +71,22 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
 
 
                 my_df_reader = my_dbf.to_dataframe(chunk_size)
+
+                start_time = time.time()
                 for my_df in my_df_reader:
+                    end_time = time.time()
+                    log.info("uuid: %s,加载dbf文件块耗时:%s秒, 记录数：%s", my_uuid, end_time - start_time, len(my_df))
                     start_time = time.time()
+
+                    block_start_time = time.time()
                     # 调用核心引擎，将dataframe数据插入数据库
                     migrate_core_engine.dataframe_to_oracle(flow_node_dbf_config,
                                                             my_df, filter_logic,
                                                             target_interface_table,
                                                             field_mapping_config_list,
                                                             context_instance)
-                    end_time = time.time()
-                    log.info("uuid: %s,处理dbf块文件耗时:%s秒, 记录数：%s", my_uuid, end_time - start_time, len(my_df))
+                    block_end_time = time.time()
+                    log.info("uuid: %s,处理dbf块文件耗时:%s秒, 记录数：%s", my_uuid, block_end_time - block_start_time, len(my_df))
 
 
                 # 正常读取dbf文件-----------------------end--------------------------------
@@ -95,6 +105,10 @@ def move_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, fiel
                 # log.info("uuid: %s,发起http请求，请求/execute/read_big_file", my_uuid)
                 # invoke_read_big_file(read_command, my_uuid)
                 context_instance.set('[READ_BIG_FILE_FLAG]', True)
+                # log.info("uuid:%s,大文件读取场景-进行数据清理", my_uuid)
+                # # 导入文件前，执行清理逻辑
+                # CleanEngine.process_clean_before_import(flow_node_dbf_config, context_instance)
+
                 move_bigfile_dbf_to_oracle(flow_node, file_path_and_name, flow_node_dbf_config, field_mapping_config_list, context_instance)
                 log.info("uuid: %s,发起http请求，请求/execute/read_big_file, 完成", my_uuid)
                 # 不能把return去掉，重要！重要！重要！的事情说3遍！

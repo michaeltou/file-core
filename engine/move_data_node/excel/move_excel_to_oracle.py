@@ -41,6 +41,10 @@ def move_excel_to_oracle(flow_node, file_path_and_name, flow_node_excel_config, 
     filter_logic = flow_node_excel_config.get('filterLogic')
     target_interface_table = flow_node_excel_config['targetIntfTbl']
 
+    CleanEngine.process_clean_before_import(flow_node_excel_config, context_instance)
+
+
+
     # 调用核心引擎，将dataframe数据插入数据库
     migrate_core_engine.dataframe_to_oracle(flow_node_excel_config,
                                             excel_data_frame,

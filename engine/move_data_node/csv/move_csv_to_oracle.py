@@ -38,6 +38,8 @@ def move_csv_to_oracle(flow_node, file_path_and_name, flow_node_csv_config, fiel
 
     csv_separator = flow_node_csv_config['separator']
 
+    CleanEngine.process_clean_before_import(flow_node_csv_config, context_instance)
+
     # 将txt文件转换成dataframe
     reader = txt_to_dataframe_reader(file_path_and_name,
                                      csv_separator, csv_header_line,

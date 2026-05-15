@@ -199,7 +199,7 @@ def execute_read(read_command_json_str = None):
 
 
 
-    start_time = get_local_millisecond_timestamp()
+    start_time = time.time() #get_local_millisecond_timestamp()
 
     # ---------start
 
@@ -215,23 +215,27 @@ def execute_read(read_command_json_str = None):
             file_type = flow_node.get('fileFmt')
             move_data(file_type, file_path_and_name, flow_node, context_instance)
 
+        result_start_time = time.time()
         data_list = context_instance.get('[__DATA_LIST__]')
         field_name_list = context_instance.get('[__FIELD_NAME_LIST__]')
         read_data = {"dataList": data_list, "fieldNameList": field_name_list}
+        result_end_time = time.time()
+        result_duration = result_end_time - result_start_time
+        log.info('UUID: %s,父UUID: %s,构造结果耗时：%s s', my_uuid, parent_uuid, result_duration)
 
-        end_time = get_local_millisecond_timestamp()
+        end_time = time.time() #get_local_millisecond_timestamp()
         # performace.insert_performance_log(context_instance=context_instance,
         #                                   phase=PhaseType.ALL.value,
         #                                   status=StatusType.SUCCESS.value,
         #                                   message="success",
         #                                   start_time=start_time,
         #                                   end_time=end_time)
-        log.info('UUID: %s,父UUID: %s,读数请求处理成功,总体耗时：%s ms', my_uuid, parent_uuid, end_time-start_time)
+        log.info('UUID: %s,父UUID: %s,读数请求处理成功,总体耗时：%s s', my_uuid, parent_uuid, end_time-start_time)
         return build_success_result(read_data)
     except RateLimitException as e:
         message = 'uuid:%s,发生限流,读数请求处理失败,异常信息：%s' % (my_uuid, 'access limit is exceeded.')
         log.error(message)
-        end_time = get_local_millisecond_timestamp()
+        #end_time = get_local_millisecond_timestamp()
         # performace.insert_performance_log(context_instance=context_instance,
         #                                   phase=PhaseType.ALL.value,
         #                                   status=StatusType.FAILED.value,
@@ -250,7 +254,7 @@ def execute_read(read_command_json_str = None):
                 stack_trace = '文件正在被其他进程占用，请稍后再试。'
             message = 'uuid:%s,读数请求处理失败,异常信息：%s' % (my_uuid, stack_trace)
         log.error(message)
-        end_time = get_local_millisecond_timestamp()
+        # end_time = get_local_millisecond_timestamp()
         # performace.insert_performance_log(context_instance=context_instance,
         #                                   phase=PhaseType.ALL.value,
         #                                   status=StatusType.FAILED.value,

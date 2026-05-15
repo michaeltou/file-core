@@ -16,6 +16,7 @@ engine/clean/3.test_ocean_base_db_util.py
 engine/clean/4.test_ocean_base_db_util.py
 engine/clean/__init__.py
 engine/clean/clean_engine.py
+engine/clean/test.py
 engine/clean/test_engine.py
 engine/clean/test_ocean_base_db_util.py
 engine/cnst/BuildType.py
@@ -44,6 +45,7 @@ engine/db/oracle_gz_get_all_product_util.py
 engine/db/oracle_read_tool_db_util.py
 engine/db/oracle_sourcedb_util.py
 engine/db/oracle_split_db_util.py
+engine/db/backup/7.test_float_to_oceanbase.py
 engine/db/backup/Test.py
 engine/db/backup/Test_connect_2_sqlserver.py
 engine/db/backup/Test_connect_2_sqlserver_use_sqlalchemy.py
@@ -54,6 +56,7 @@ engine/db/backup/oracle_util_使用with_v2.py
 engine/db/backup/oracle_util_最原始版本_v1.py
 engine/db/oceanbase/__init__.py
 engine/db/oceanbase/ocean_base_db_util.py
+engine/db/oceanbase/ocean_base_multi_process_db_util.py
 engine/db/oceanbase/perform_test_small.py
 engine/db/oceanbase/perform_test_单线程.py
 engine/db/oceanbase/perform_test_单线程_small_field.py

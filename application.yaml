@@ -13,18 +13,32 @@ read_tool: # 读数工具专有配置
     #connect_url: oracle+oracledb://IS20170920B07:IS20170920B07@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.20.146.105)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=10.20.146.106)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=your_service_name))) # 请将 your_service_name 替换为实际的服务名    # FA6
 
     #FD
-    connect_url: oracle+oracledb://FD20180816C:FD20180816C@10.20.28.74:1521/orcl
+#    connect_url: oracle+oracledb://FD20180816C:FD20180816C@10.20.28.74:1521/orcl
   oceanbase:
-    username: Y7PHFUND_REALTIME@UAT_GZ01#UAT_Cluster05
-    password: aaAA11##2025
-    host: uatobc05.phfund.com.cn
-    port: 2883
-    database: Y7PHFUND_REALTIME
+    username: DOUMING
+    password: QHv_{0VKiN
+    host: t7ql6qlkari3k-mi.aliyun-cn-shenzhen-internet.oceanbase.cloud
+    port: 1521
+    database: dm_tenant1
     pool_size: 3  # 连接池大小
+#  oceanbase:
+#    username: Y7PHFUND_REALTIME@UAT_GZ01#UAT_Cluster05
+#    password: aaAA11##2025
+#    host: uatobc05.phfund.com.cn
+#    port: 2883
+#    database: Y7PHFUND_REALTIME
+#    pool_size: 3  # 连接池大小
+
+
+  file:
+    batch:
+      process:
+        pool:
+          size: 10 # 进程池大小。
 
 dbf:
   chunk_size: 10000 #txt文件读取的块大小，默认100000条记录。
-  using_multi_process_switch_count: 100000 # 开启多进程处理的阈值，默认100000条记录。
+  using_multi_process_switch_count: 1000000 # 开启多进程处理的阈值，默认100000条记录。
 
 txt:
   chunk_size: 10000 #txt文件读取的块大小，默认100000条记录。
@@ -52,3 +66,4 @@ redis:
   password:
   # Redis数据库索引（默认为0）
   database:
+
