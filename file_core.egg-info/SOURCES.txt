@@ -236,6 +236,7 @@ engine/move_data_node/excel/faster/pd_read_excel_v2.py
 engine/move_data_node/t2/__init__.py
 engine/move_data_node/t2/move_t2.py
 engine/move_data_node/t2/move_t2_to_oracle.py
+engine/move_data_node/txt/TextMultiProcessWorker.py
 engine/move_data_node/txt/__init__.py
 engine/move_data_node/txt/move_txt.py
 engine/move_data_node/txt/move_txt_to_oracle.py

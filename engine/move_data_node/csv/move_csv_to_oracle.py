@@ -15,6 +15,8 @@ def move_csv_to_oracle(flow_node, file_path_and_name, flow_node_csv_config, fiel
     # txt头部文件所在行，这里设置为None，通过column_names来指定
     csv_header_line = None
     csv_skip_rows = flow_node_csv_config['skipRows']
+    csv_skip_rows = str(csv_skip_rows)
+
     if csv_skip_rows.isdigit():
         csv_skip_rows = int(csv_skip_rows)
     else:

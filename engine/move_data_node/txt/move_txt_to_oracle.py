@@ -6,6 +6,9 @@ import engine.util.config as config
 import traceback
 import fnmatch
 
+from engine.move_data_node.txt.TextMultiProcessWorker import TextWorker
+
+
 def move_txt_to_oracle(flow_node, file_path_and_name, flow_node_txt_config, field_mapping_config_list, context_instance):
     # 创建读数引擎
     migrate_core_engine = MigrateCoreEngine()
@@ -15,20 +18,39 @@ def move_txt_to_oracle(flow_node, file_path_and_name, flow_node_txt_config, fiel
     column_get_type = flow_node_txt_config.get('columnGetType')
 
     CleanEngine.process_clean_before_import(flow_node_txt_config, context_instance)
-
+    my_uuid = context_instance.get('[UUID]')
     if column_get_type == ColumnGetType.SEPERATOR.value:
         # 获取文件的大小，如果文件大小大于100M,则分块读取
         file_size = os.path.getsize(file_path_and_name)
         if file_size > 100 * 1024 * 1024:
+            context_instance.set('[READ_BIG_FILE_FLAG]', True)
+
             # # 将txt文件以分隔符的方式转换成dataframe
             reader = txt_to_dataframe_reader_for_separator(flow_node_txt_config, file_path_and_name, context_instance)
+            tuple_param_list = []
+            counter = 0
             for my_dataframe in reader:
+                counter += 1
                 # 调用核心引擎，将dataframe数据插入数据库
-                migrate_core_engine.dataframe_to_oracle(flow_node_txt_config,
-                                                        my_dataframe, filter_logic,
-                                                        target_interface_table,
-                                                        field_mapping_config_list,
-                                                        context_instance)
+                # migrate_core_engine.dataframe_to_oracle(flow_node_txt_config,
+                #                                         my_dataframe, filter_logic,
+                #                                         target_interface_table,
+                #                                         field_mapping_config_list,
+                #                                         context_instance)
+
+                # 构造数据给进程池处理
+                tuple_param_list.append((flow_node_txt_config,
+                                         my_dataframe,
+                                         filter_logic,
+                                         target_interface_table,
+                                         field_mapping_config_list,
+                                          context_instance ))
+            log.info("uuid:%s, 本txt，总共拆解成：%s 组分组进行处理", my_uuid, counter)
+
+            # 提交任务到进程池
+
+            text_worker = TextWorker()
+            text_worker.read_txt_file_for_one_process(my_uuid, tuple_param_list)
         else:
             # 将txt文件以分隔符的方式转换成dataframe
             my_dataframe = txt_to_dataframe_for_separator(flow_node_txt_config, file_path_and_name, context_instance)
