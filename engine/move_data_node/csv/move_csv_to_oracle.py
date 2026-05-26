@@ -28,6 +28,7 @@ def move_csv_to_oracle(flow_node, file_path_and_name, flow_node_csv_config, fiel
             raise ValueError(f"skipRows配置错误，请检查配置项{skip_rows}是否存在上下文变量或数字")
 
     total_column_count = flow_node_csv_config['totalColumnCount']
+    total_column_count = str(total_column_count)
     if total_column_count.isdigit():
         total_column_count = int(total_column_count)
     else:

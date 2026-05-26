@@ -7,5 +7,6 @@ class FileType(Enum):
     XML = 'XML'
     EXCEL = 'EXCEL'
     CSV = 'CSV'
+    JSON = 'JSON'
 
 

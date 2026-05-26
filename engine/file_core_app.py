@@ -166,7 +166,7 @@ def execute_read(read_command_json_str = None):
     log.info('UUID: %s, 父UUID: %s,接收到读数请求,读数指令read_command是: %s,进程ID：%s,线程ID：%s',
              my_uuid,parent_uuid, read_command, process_id, thread_id)
     file_path_and_name = read_command.get('filePathAndName')
-
+    jsonData = read_command.get('jsonData')
     read_rule = read_command.get('readRule')
     encoding = read_command.get('encoding','utf-8')
     file_id = read_command.get('fileId')
@@ -188,6 +188,8 @@ def execute_read(read_command_json_str = None):
     context_instance.set('[INTERFACE_ID]', file_id)
     context_instance.set('[INTERFACE_NAME]', file_name)
     context_instance.set('[FILE_PATH_AND_NAME]', file_path_and_name)
+    context_instance.set('[JSON_DATA]', jsonData)
+
     context_instance.set('[INVOKE_MODE]', invoke_mode)
     context_instance.set('[UUID]', my_uuid)
     context_instance.set('[READ_COMMAND]',read_command)

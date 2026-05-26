@@ -4,6 +4,8 @@ from engine.move_data_node.dbfile.move_db_data import move_db_data
 from engine.move_data_node.txt.move_txt import move_txt
 from engine.move_data_node.xml.move_xml import move_xml
 from engine.move_data_node.excel.move_excel import move_excel
+from engine.move_data_node.json.move_json import move_json
+
 from engine.move_data_node.csv.move_csv import move_csv
 from engine.move_data_node.t2.move_t2 import move_t2
 
@@ -33,6 +35,10 @@ def move_data(file_type, file_path_and_name, flow_node, context_instance):
             flow_node_csv_config = flow_node['fileCsvParseRuleDTO']
             move_csv(flow_node, file_path_and_name, flow_node_csv_config, field_mapping_config_list, context_instance)
             pass
+        elif file_type == FileType.JSON.value:
+            flow_node_json_config = flow_node['fileJsonParseRuleDTO']
+            json_data_str = context_instance.get('[JSON_DATA]')
+            move_json(flow_node, json_data_str, flow_node_json_config, field_mapping_config_list, context_instance)
         else:
             pass
 

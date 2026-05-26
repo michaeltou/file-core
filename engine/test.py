@@ -5,7 +5,16 @@ import engine.util.log as log
 df = pd.DataFrame({
     'ID': [1, 2, 3],
     'NAME': ['Alice', 'Bob', 'Charlie'],
-    'AGE': [25, 30, 35]
+    'AGE': ['25', '30', '35']
 })
 
 log.info('df的内容是：%s', df)
+
+
+df = df.query("AGE.astype('int') > 30")
+
+
+
+print(df)
+
+
