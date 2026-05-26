@@ -16,4 +16,20 @@ df['RECNUM'] = df.reset_index().index + 1
 df['UUID'] = df.apply(lambda _: str(uuid.uuid4()), axis=1)
 
 # 打印结果
-print(df)
+# print(df)
+
+def uuid_to_decimal(uuid_obj):
+    """将UUID转换为十进制"""
+    # 去掉连字符，得到纯十六进制字符串
+    hex_str = str(uuid_obj).replace('-', '')
+    # 将十六进制字符串转换为十进制整数
+    decimal_value = int(hex_str, 16)
+    return decimal_value
+
+my_uuid = uuid.uuid4()
+print(f"原始UUID: {my_uuid}")
+
+# 转换为十进制
+decimal_value = uuid_to_decimal(my_uuid)
+print(f"十进制表示: {decimal_value}")
+print(f"十进制位数: {len(str(decimal_value))}位")

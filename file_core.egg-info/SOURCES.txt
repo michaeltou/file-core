@@ -233,6 +233,9 @@ engine/move_data_node/excel/faster/2.convert_to_csv.py
 engine/move_data_node/excel/faster/__init__.py
 engine/move_data_node/excel/faster/libreoffice_convert_xlsx_2_csv.py
 engine/move_data_node/excel/faster/pd_read_excel_v2.py
+engine/move_data_node/json/__init__.py
+engine/move_data_node/json/move_json.py
+engine/move_data_node/json/move_json_to_oracle.py
 engine/move_data_node/t2/__init__.py
 engine/move_data_node/t2/move_t2.py
 engine/move_data_node/t2/move_t2_to_oracle.py

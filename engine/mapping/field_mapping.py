@@ -4,9 +4,21 @@ import pandas as pd
 from engine.process.process_engine import ProcessEngine
 from engine.filter.filter_engine import FilterEngine
 
+
+def uuid_to_decimal(uuid_obj):
+    """将UUID转换为十进制"""
+    # 去掉连字符，得到纯十六进制字符串
+    hex_str = str(uuid_obj).replace('-', '')
+    # 将十六进制字符串转换为十进制整数
+    decimal_value = int(hex_str, 16)
+    return decimal_value
+
+
 class FieldMapping:
     def __init__(self):
         pass
+
+
 
     # 处理字段映射
     @staticmethod
@@ -38,6 +50,14 @@ class FieldMapping:
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
+
+            elif source_field == '[UUID_10]':
+                df['[UUID_10]'] = df.apply(lambda _: uuid_to_decimal(uuid.uuid4()), axis=1)
+                ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type,
+                                                    date_format)
+                #  2 将处理后的数据，赋值给目标dataFrame
+                result_df[target_field] = df[source_field]
+
             else:  # 非'RECNUM'字段的处理
                 # 保留原始值
                 original_source_field = source_field
