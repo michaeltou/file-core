@@ -27,6 +27,8 @@ class CleanEngine:
         sql_list = exec_sql.split(';')
         for sql in sql_list:
             sql = sql.strip()
+            if sql == '':
+                continue
             # 上下文是个map，里面包含了所有变量和参数，刚好可以传给sql语句
             params = context_instance.gen_simple_context_dict()
             sql = replace_sql(sql, context_instance)
@@ -34,11 +36,13 @@ class CleanEngine:
 
 
 def test_sql_split():
-    my_sql="sql1"
+    my_sql=";sql1;"
     # 按分号分隔
     sql_list = my_sql.split(';')
     print(sql_list)
     for sql in sql_list:
+        if sql == '':
+            continue
         print(sql)
 
 

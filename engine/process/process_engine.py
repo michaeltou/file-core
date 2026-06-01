@@ -15,7 +15,9 @@ class ProcessEngine:
     def process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format):
         process_start_time = time.time()
         my_uuid = context_instance.get('[UUID]')
-        # 1 对dataFrame进行预处理（按照类型进行转换，去除空格，按照时间格式进行转换）
+
+
+        # # 1 对dataFrame进行预处理（按照类型进行转换，去除空格，按照时间格式进行转换）
         if field_type == FieldType.DECIMAL.value:
             df[source_field] = pd.to_numeric(df[source_field], errors='coerce')
         elif field_type == FieldType.STRING.value:
@@ -23,23 +25,36 @@ class ProcessEngine:
                 # 保留原始空格
                 df[source_field] = df[source_field].astype(str)
             else:
-                # 去除空格
-                df[source_field] = df[source_field].astype(str).str.strip()
-        elif field_type == FieldType.DATETIME.value:
+                # 去除空格 - 优化：先判断类型避免重复转换
+                if df[source_field].dtype != object:
+                    df[source_field] = df[source_field].astype(str)
+                df[source_field] = df[source_field].str.strip()
+        if field_type == FieldType.DATETIME.value:
+            date_start_time =  time.time()
             # 转成字符串
-            df[source_field] = df[source_field].astype(str).str.strip()
+            #df[source_field] = df[source_field].astype(str).str.strip()
             # 把'nan'字符串，转成空字符串
             df[source_field] = df[source_field].replace('nan', None)
-
+            # app_start_time = time.time()
             # 按照指定格式，进行日期转换
-            df[source_field] = df[source_field].apply(my_parse_date, point_format=date_format)
+            # df[source_field] = df[source_field].apply(my_parse_date, point_format=date_format)
+            # app_end_time = time.time()
+            # log.info('UUID: %s,字段 %s apply 日期转换耗时：%s s', my_uuid, source_field, app_end_time-app_start_time)
 
             try:
+                datetime_start_time = time.time()
                 # 先按照字符串的方式和指定的格式，进行数据转换
-                df[source_field] = pd.to_datetime(df[source_field])
+                # df[source_field] = pd.to_datetime(df[source_field])
+                df[source_field] = pd.to_datetime(df[source_field], format='mixed', errors='coerce')
+
+                datetime_end_time = time.time()
+                log.info('UUID: %s,字段 %s to_datetime 日期转换耗时：%s s', my_uuid, source_field, datetime_end_time-datetime_start_time)
             except ValueError as e:
                 # 如果转换失败，则按照混合格式进行转换（自动失败日期格式，如果无法转换，则会置为空）
                 df[source_field] = pd.to_datetime(df[source_field], format='mixed', errors='coerce')
+
+            date_end_time = time.time()
+            log.info('UUID: %s,字段 %s 的日期转换耗时：%s s', my_uuid, source_field, date_end_time-date_start_time)
 
 
             # try:
