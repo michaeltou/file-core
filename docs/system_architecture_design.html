@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文件网关内核 - 系统架构设计</title>
+<style>
+/* ========== Reset & Base ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #dbeafe;
+  --primary-bg: #eff6ff;
+  --accent: #7c3aed;
+  --accent-light: #ede9fe;
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,.1), 0 4px 6px rgba(0,0,0,.05);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,.1), 0 10px 10px rgba(0,0,0,.04);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --transition: .2s ease;
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--gray-800);
+  background: var(--gray-50);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========== Navigation ========== */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: 280px; background: var(--gray-900);
+  overflow-y: auto; z-index: 100;
+  transition: transform .3s ease;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+.sidebar-header {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sidebar-logo {
+  display: flex; align-items: center; gap: 12px;
+  color: #fff; font-size: 1.1rem; font-weight: 700;
+  text-decoration: none;
+}
+.sidebar-logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+.sidebar-version {
+  color: var(--gray-400); font-size: .75rem; margin-top: 8px; margin-left: 48px;
+}
+
+.nav-list { list-style: none; padding: 12px 0; }
+.nav-group-title {
+  padding: 16px 24px 6px;
+  font-size: .7rem; font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.nav-item a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px;
+  color: var(--gray-300);
+  text-decoration: none;
+  font-size: .875rem;
+  transition: all var(--transition);
+  border-left: 3px solid transparent;
+}
+.nav-item a:hover {
+  background: rgba(255,255,255,.06);
+  color: #fff;
+  border-left-color: var(--primary);
+}
+.nav-item a.active {
+  background: rgba(37,99,235,.15);
+  color: var(--primary-light);
+  border-left-color: var(--primary);
+  font-weight: 600;
+}
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+/* ========== Main Content ========== */
+.main {
+  margin-left: 280px;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Hero */
+.hero {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%);
+  color: #fff;
+  padding: 80px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -50%; right: -20%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero::after {
+  content: '';
+  position: absolute; bottom: -30%; left: -10%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(255,255,255,.05) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-content { position: relative; z-index: 1; max-width: 800px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(4px);
+  padding: 6px 14px; border-radius: 20px;
+  font-size: .8rem; font-weight: 500;
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: 2.8rem; font-weight: 800;
+  line-height: 1.2; margin-bottom: 16px;
+  letter-spacing: -.02em;
+}
+.hero-subtitle {
+  font-size: 1.15rem; line-height: 1.8;
+  color: rgba(255,255,255,.85);
+  max-width: 640px;
+}
+.hero-meta {
+  display: flex; gap: 24px; margin-top: 32px;
+  font-size: .85rem; color: rgba(255,255,255,.6);
+}
+.hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+/* Sections */
+.content-wrap { max-width: 1100px; margin: 0 auto; padding: 0 48px; }
+
+.section {
+  padding: 64px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.section:last-child { border-bottom: none; }
+
+.section-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 32px;
+}
+.section-number {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; font-weight: 700;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 1.75rem; font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -.01em;
+}
+
+.subsection { margin-top: 40px; }
+.subsection-title {
+  font-size: 1.2rem; font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.subsection-title::before {
+  content: '';
+  width: 4px; height: 20px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* ========== Cards ========== */
+.card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+.card-grid {
+  display: grid;
+  gap: 20px;
+}
+.card-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.card-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.card-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.card-grid-5 { grid-template-columns: repeat(5, 1fr); }
+.card-grid-7 { grid-template-columns: repeat(7, 1fr); }
+
+@media (max-width: 900px) {
+  .card-grid-2, .card-grid-3, .card-grid-4, .card-grid-5, .card-grid-7 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .card-grid-2, .card-grid-3, .card-grid-4, .card-grid-5, .card-grid-7 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== Capability Card ========== */
+.capability-card {
+  text-align: center;
+  padding: 28px 20px;
+}
+.capability-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 14px;
+}
+.capability-card h4 {
+  font-size: .95rem; font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--gray-800);
+}
+.capability-card p {
+  font-size: .82rem;
+  color: var(--gray-500);
+  line-height: 1.5;
+}
+
+/* ========== Tables ========== */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+thead { background: var(--gray-50); }
+th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-600);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 2px solid var(--gray-200);
+  white-space: nowrap;
+}
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--primary-bg); }
+
+/* ========== Badges & Tags ========== */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-blue { background: var(--primary-light); color: var(--primary); }
+.badge-purple { background: var(--accent-light); color: var(--accent); }
+.badge-green { background: var(--success-bg); color: var(--success); }
+.badge-yellow { background: var(--warning-bg); color: var(--warning); }
+.badge-red { background: var(--danger-bg); color: var(--danger); }
+
+.severity-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.severity-critical { background: var(--danger); }
+.severity-medium { background: var(--warning); }
+.severity-low { background: var(--success); }
+
+/* ========== Architecture Diagrams (CSS) ========== */
+.diagram {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+/* System Context Diagram */
+.ctx-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+}
+.ctx-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ctx-core {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  padding: 20px 36px;
+  border-radius: var(--radius-xl);
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  min-width: 200px;
+}
+.ctx-core small {
+  display: block; font-size: .75rem;
+  font-weight: 400; opacity: .8;
+  margin-top: 4px;
+}
+.ctx-external {
+  background: var(--gray-50);
+  border: 2px solid var(--gray-300);
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-align: center;
+  min-width: 120px;
+}
+.ctx-external small {
+  display: block; font-size: .7rem;
+  font-weight: 400; color: var(--gray-500);
+  margin-top: 2px;
+}
+.ctx-arrow {
+  display: flex; align-items: center;
+  color: var(--gray-400);
+  font-size: .8rem;
+  gap: 4px;
+  min-width: 60px;
+}
+.ctx-arrow-line {
+  flex: 1; height: 2px;
+  background: var(--gray-300);
+  position: relative;
+}
+.ctx-arrow-line::after {
+  content: '▶';
+  position: absolute; right: -4px; top: -8px;
+  font-size: .6rem; color: var(--gray-400);
+}
+
+/* Layer Architecture */
+.layer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+}
+.layer {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-200);
+  position: relative;
+}
+.layer:last-child { border-bottom: none; }
+.layer-label {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.layer-label-icon {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem;
+}
+.layer-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.layer-module {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Pipeline */
+.pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+.pipeline-stage {
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: .85rem;
+  font-weight: 600;
+  min-width: 110px;
+  position: relative;
+}
+.pipeline-stage small {
+  display: block; font-size: .7rem;
+  font-weight: 400; margin-top: 4px;
+  opacity: .7;
+}
+.pipeline-arrow {
+  font-size: 1.2rem;
+  color: var(--gray-400);
+  padding: 0 4px;
+}
+
+/* Data Flow */
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 24px 16px;
+}
+.flow-step {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+}
+.flow-num {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.flow-content {
+  flex: 1;
+}
+.flow-content h5 {
+  font-size: .9rem; font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--gray-800);
+}
+.flow-content p {
+  font-size: .82rem;
+  color: var(--gray-500);
+  line-height: 1.5;
+}
+.flow-connector {
+  width: 32px;
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+  color: var(--gray-300);
+  font-size: 1rem;
+  margin-left: 0;
+}
+
+/* Dual Dict Diagram */
+.dual-dict {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+.dict-box {
+  flex: 1; min-width: 260px; max-width: 360px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+}
+.dict-header {
+  padding: 12px 16px;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+}
+.dict-body {
+  padding: 12px 16px;
+  background: #fff;
+}
+.dict-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: .82rem;
+}
+.dict-row:last-child { border-bottom: none; }
+.dict-key { font-family: 'SF Mono', 'Fira Code', monospace; color: var(--primary); font-weight: 500; }
+.dict-val { color: var(--gray-600); }
+
+/* File Format Cards */
+.format-card {
+  text-align: center;
+  padding: 20px 14px;
+  border-top: 4px solid;
+}
+.format-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+.format-card h4 { font-size: .9rem; font-weight: 700; margin-bottom: 6px; }
+.format-card p { font-size: .78rem; color: var(--gray-500); line-height: 1.4; }
+
+/* DB Connection Diagram */
+.db-diagram {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+.db-model {
+  flex: 1; min-width: 280px; max-width: 440px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+  background: #fff;
+}
+.db-model-header {
+  padding: 16px 20px;
+  color: #fff;
+  font-weight: 700;
+  font-size: .95rem;
+}
+.db-model-body {
+  padding: 16px 20px;
+}
+.db-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: .82rem;
+}
+.db-model-row:last-child { border-bottom: none; }
+
+/* Deployment Diagram */
+.deploy-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+.deploy-box {
+  flex: 1; min-width: 260px; max-width: 420px;
+  border-radius: var(--radius-lg);
+  border: 2px solid;
+  overflow: hidden;
+  background: #fff;
+}
+.deploy-box-header {
+  padding: 16px 20px;
+  font-weight: 700;
+  font-size: .95rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.deploy-box-body {
+  padding: 16px 20px;
+}
+.deploy-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: .82rem;
+  color: var(--gray-600);
+}
+.deploy-item::before {
+  content: '•';
+  color: var(--gray-400);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Code Block */
+.code-block {
+  background: var(--gray-900);
+  color: #e5e7eb;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: .82rem;
+  line-height: 1.7;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+.code-block .k { color: #93c5fd; }  /* keyword */
+.code-block .s { color: #86efac; }  /* string */
+.code-block .c { color: #6b7280; }  /* comment */
+.code-block .n { color: #fbbf24; }  /* number */
+.code-block .p { color: #c4b5fd; }  /* param */
+
+/* Flowchart with CSS arrows */
+.fc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 20px 8px;
+}
+.fc-node {
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: .85rem;
+  font-weight: 600;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+}
+.fc-node small {
+  display: block; font-weight: 400;
+  font-size: .75rem; margin-top: 4px; opacity: .7;
+}
+.fc-down {
+  width: 2px; height: 20px;
+  background: var(--gray-300);
+  position: relative;
+}
+.fc-down::after {
+  content: '';
+  position: absolute; bottom: -4px; left: -4px;
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--gray-300);
+}
+.fc-branch {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 700px;
+}
+.fc-branch-item {
+  flex: 1; min-width: 140px;
+}
+
+/* Variable Substitution Diagram */
+.var-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+.var-sub-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.var-sub-label {
+  min-width: 80px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: center;
+}
+.var-sub-content {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: .82rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-700);
+  flex: 1;
+}
+
+/* ========== Footer ========== */
+.footer {
+  background: var(--gray-900);
+  color: var(--gray-400);
+  padding: 40px 60px;
+  font-size: .82rem;
+}
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-brand {
+  color: #fff;
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 1024px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .hero { padding: 60px 32px; }
+  .hero h1 { font-size: 2rem; }
+  .content-wrap { padding: 0 24px; }
+  .menu-toggle { display: flex !important; }
+}
+.menu-toggle {
+  display: none;
+  position: fixed; top: 16px; left: 16px;
+  width: 44px; height: 44px;
+  background: var(--primary);
+  color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Back to top */
+.back-top {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 44px; height: 44px;
+  background: var(--primary);
+  color: #fff;
+  border: none; border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all .3s ease;
+  z-index: 50;
+}
+.back-top.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.back-top:hover { background: var(--primary-dark); }
+
+/* Print */
+@media print {
+  .sidebar, .menu-toggle, .back-top { display: none !important; }
+  .main { margin-left: 0 !important; }
+  .hero { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .section { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="#" class="sidebar-logo">
+      <div class="sidebar-logo-icon">🔷</div>
+      <span>文件网关内核</span>
+    </a>
+    <div class="sidebar-version">v1.0 · 系统架构设计</div>
+  </div>
+  <ul class="nav-list">
+    <li class="nav-group-title">概览</li>
+    <li class="nav-item"><a href="#overview"><span class="nav-icon">📋</span>系统概述</a></li>
+    <li class="nav-item"><a href="#architecture-style"><span class="nav-icon">🏛️</span>架构风格与原则</a></li>
+    <li class="nav-item"><a href="#context"><span class="nav-icon">🌍</span>系统上下文</a></li>
+    <li class="nav-group-title">设计</li>
+    <li class="nav-item"><a href="#logic"><span class="nav-icon">🧱</span>逻辑架构</a></li>
+    <li class="nav-item"><a href="#dataflow"><span class="nav-icon">🔀</span>核心数据流</a></li>
+    <li class="nav-item"><a href="#api"><span class="nav-icon">🔌</span>API 设计</a></li>
+    <li class="nav-item"><a href="#components"><span class="nav-icon">⚙️</span>组件详细设计</a></li>
+    <li class="nav-group-title">基础设施</li>
+    <li class="nav-item"><a href="#database"><span class="nav-icon">🗄️</span>数据库架构</a></li>
+    <li class="nav-item"><a href="#concurrency"><span class="nav-icon">🔄</span>并发与多进程</a></li>
+    <li class="nav-item"><a href="#config"><span class="nav-icon">🎛️</span>配置管理</a></li>
+    <li class="nav-item"><a href="#security"><span class="nav-icon">🔒</span>安全考量</a></li>
+    <li class="nav-item"><a href="#deployment"><span class="nav-icon">🚀</span>部署架构</a></li>
+    <li class="nav-group-title">附录</li>
+    <li class="nav-item"><a href="#issues"><span class="nav-icon">📌</span>已知问题与改进</a></li>
+  </ul>
+</nav>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- Hero -->
+  <header class="hero" id="top">
+    <div class="hero-content">
+      <div class="hero-badge">🔷 File Gateway Core</div>
+      <h1>文件网关内核<br>系统架构设计</h1>
+      <p class="hero-subtitle">
+        一个文件解析与数据入库的中间件服务，将多种格式的外部文件解析为结构化数据，
+        经过滤、映射、转换后写入 OceanBase 数据库。
+      </p>
+      <div class="hero-meta">
+        <span>📅 版本 1.0</span>
+        <span>📅 2026-06-03</span>
+        <span>🐍 Python / Flask</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="content-wrap">
+
+    <!-- ==================== 1. 系统概述 ==================== -->
+    <section class="section" id="overview">
+      <div class="section-header">
+        <div class="section-number">01</div>
+        <h2 class="section-title">系统概述</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">系统定位</h3>
+        <p>文件网关内核（File Gateway Core）是一个<strong>文件解析与数据入库的中间件服务</strong>，负责将外部来源的多种格式文件解析为结构化数据，经过过滤、字段映射、类型转换等加工后，写入 OceanBase（Oracle 兼容模式）数据库。</p>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">核心能力</h3>
+        <div class="card-grid card-grid-5">
+          <div class="card capability-card">
+            <div class="capability-icon" style="background: var(--primary-light); color: var(--primary);">📁</div>
+            <h4>多格式文件解析</h4>
+            <p>支持 7 种数据源格式，每种格式有独立的解析引擎</p>
+          </div>
+          <div class="card capability-card">
+            <div class="capability-icon" style="background: var(--accent-light); color: var(--accent);">🔧</div>
+            <h4>数据加工流水线</h4>
+            <p>过滤 → 映射 → 转换 → 入库，四阶段串行流水线</p>
+          </div>
+          <div class="card capability-card">
+            <div class="capability-icon" style="background: var(--warning-bg); color: var(--warning);">⚡</div>
+            <h4>大文件多进程</h4>
+            <p>DBF &gt;100万行、TXT &gt;100MB 自动切换多进程并行</p>
+          </div>
+          <div class="card capability-card">
+            <div class="capability-icon" style="background: var(--success-bg); color: var(--success);">📐</div>
+            <h4>数据驱动配置</h4>
+            <p>处理规则通过 JSON 传入，无需修改代码即可支持新业务</p>
+          </div>
+          <div class="card capability-card">
+            <div class="capability-icon" style="background: #fce7f3; color: #be185d;">🔗</div>
+            <h4>上下文变量体系</h4>
+            <p>标量 <code>[VAR]</code> 和集合 <code>[[COL.FIELD]]</code> 两级变量替换</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">系统边界</h3>
+        <div class="diagram">
+          <div class="ctx-diagram">
+            <div class="ctx-row">
+              <div class="ctx-external">外部调用方<small>资金清算系统等</small></div>
+              <div class="ctx-arrow"><div class="ctx-arrow-line"></div></div>
+              <div class="ctx-core">文件网关内核<small>File Gateway Core</small></div>
+              <div class="ctx-arrow"><div class="ctx-arrow-line"></div></div>
+              <div class="ctx-external">OceanBase<small>Oracle 兼容数据库</small></div>
+            </div>
+            <div class="ctx-row">
+              <div class="ctx-external">文件系统<small>DBF / TXT / Excel / CSV / XML</small></div>
+              <div class="ctx-arrow"><div class="ctx-arrow-line"></div></div>
+              <div style="width:200px"></div>
+              <div class="ctx-arrow"><div class="ctx-arrow-line"></div></div>
+              <div class="ctx-external">Redis<small>并发控制 / 分布式锁</small></div>
+            </div>
+            <div class="ctx-row">
+              <div class="ctx-external">T2 API<small>外部数据服务</small></div>
+              <div class="ctx-arrow"><div class="ctx-arrow-line"></div></div>
+              <div style="width:200px"></div>
+            </div>
+          </div>
+          <div style="text-align:center; margin-top:12px;">
+            <span class="badge badge-blue">本系统不负责：文件生成、业务校验规则定义、前端界面、数据查询服务</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2. 架构风格 ==================== -->
+    <section class="section" id="architecture-style">
+      <div class="section-header">
+        <div class="section-number">02</div>
+        <h2 class="section-title">架构风格与设计原则</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">架构风格：管道-过滤器（Pipe-and-Filter）</h3>
+        <div class="diagram">
+          <div class="pipeline">
+            <div class="pipeline-stage" style="background: var(--primary-light); color: var(--primary);">
+              文件读取<small>DataFrame</small>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" style="background: #fef3c7; color: #92400e;">
+              过滤器<small>FilterEngine</small>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" style="background: var(--accent-light); color: var(--accent);">
+              字段映射器<small>FieldMapping</small>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" style="background: #fce7f3; color: #9d174d;">
+              逻辑处理器<small>ProcessEngine</small>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" style="background: var(--success-bg); color: var(--success);">
+              清洗引擎<small>CleanEngine</small>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-stage" style="background: var(--primary-light); color: var(--primary);">
+              数据库写入<small>to_sql()</small>
+            </div>
+          </div>
+          <p style="text-align:center; margin-top:16px; font-size:.85rem; color:var(--gray-500);">
+            每个阶段独立封装，通过 pandas DataFrame 作为管道间的标准数据载体
+          </p>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">设计原则</h3>
+        <div class="card-grid card-grid-2">
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:10px;">📐 数据驱动</h4>
+            <p style="font-size:.85rem; color:var(--gray-600);">处理规则通过 JSON 配置传入，引擎根据配置动态执行，无需为不同业务编写代码</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:10px;">🔀 策略模式</h4>
+            <p style="font-size:.85rem; color:var(--gray-600);">文件类型通过 FileType 枚举分派到独立处理器，新增格式只需增加处理器</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:10px;">🧩 关注点分离</h4>
+            <p style="font-size:.85rem; color:var(--gray-600);">文件读取、数据加工、数据库写入各自独立，互不耦合</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:10px;">🛡️ 渐进式降级</h4>
+            <p style="font-size:.85rem; color:var(--gray-600);">DBF: simpledbfdm → dbfreaddm；Excel: pd.read_excel → xlsx2csv</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. 系统上下文 ==================== -->
+    <section class="section" id="context">
+      <div class="section-header">
+        <div class="section-number">03</div>
+        <h2 class="section-title">系统上下文</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">外部依赖关系</h3>
+        <div class="diagram">
+          <div class="ctx-diagram">
+            <div class="ctx-core" style="padding: 28px 48px;">
+              文件网关内核
+              <small style="font-size:.8rem;">
+                Flask · Gunicorn · Waitress<br>
+                engine/ 业务引擎层
+              </small>
+            </div>
+            <div class="ctx-row" style="margin-top:8px;">
+              <div class="ctx-external" style="border-color: var(--primary); border-width:2px;">
+                🗄️ OceanBase<small>Oracle 兼容模式</small>
+              </div>
+              <div class="ctx-external" style="border-color: var(--danger); border-width:2px;">
+                🔴 Redis Cluster<small>3 节点</small>
+              </div>
+              <div class="ctx-external" style="border-color: var(--accent); border-width:2px;">
+                🌐 T2 API<small>外部 HTTP 服务</small>
+              </div>
+            </div>
+            <div class="ctx-row" style="margin-top:4px;">
+              <div class="ctx-external" style="border-color: var(--success); border-width:2px;">
+                📁 文件系统<small>DBF / TXT / Excel / CSV / XML</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">技术栈</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>层次</th><th>技术</th><th>版本</th></tr></thead>
+            <tbody>
+              <tr><td>Web 框架</td><td>Flask</td><td>~3.0.0</td></tr>
+              <tr><td>WSGI 服务器</td><td>Gunicorn (生产) / Waitress (独立)</td><td>—</td></tr>
+              <tr><td>数据处理</td><td>pandas + numpy</td><td>~2.2.3 / ~1.26.3</td></tr>
+              <tr><td>数据库驱动</td><td>SQLAlchemy + cx_oracle (OceanBase)</td><td>~2.0.27 / ~2.4.1</td></tr>
+              <tr><td>缓存/协调</td><td>Redis (Cluster)</td><td>~5.2.1</td></tr>
+              <tr><td>DBF 解析</td><td>simpledbfdm / dbfreaddm</td><td>—</td></tr>
+              <tr><td>Excel 解析</td><td>openpyxl / xlsx2csv</td><td>~3.0.9 / ~0.8.4</td></tr>
+              <tr><td>XML 解析</td><td>lxml</td><td>~5.1.0</td></tr>
+              <tr><td>限流</td><td>ratelimit</td><td>~2.2.1</td></tr>
+              <tr><td>配置</td><td>PyYAML</td><td>~6.0.2</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. 逻辑架构 ==================== -->
+    <section class="section" id="logic">
+      <div class="section-header">
+        <div class="section-number">04</div>
+        <h2 class="section-title">逻辑架构</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">分层架构</h3>
+        <div class="layer-stack">
+          <div class="layer" style="background: #eff6ff;">
+            <div class="layer-label">
+              <div class="layer-label-icon" style="background:var(--primary);color:#fff;">🌐</div>
+              <span style="color:var(--primary);">API 层</span>
+              <span style="font-weight:400; color:var(--gray-500); font-size:.75rem;">file_core_app.py</span>
+            </div>
+            <div class="layer-modules">
+              <span class="layer-module" style="background:var(--primary-light); color:var(--primary);">路由定义</span>
+              <span class="layer-module" style="background:var(--primary-light); color:var(--primary);">请求解析</span>
+              <span class="layer-module" style="background:var(--primary-light); color:var(--primary);">上下文初始化</span>
+              <span class="layer-module" style="background:var(--primary-light); color:var(--primary);">限流控制</span>
+              <span class="layer-module" style="background:var(--primary-light); color:var(--primary);">响应构造</span>
+            </div>
+          </div>
+          <div class="layer" style="background: #ede9fe;">
+            <div class="layer-label">
+              <div class="layer-label-icon" style="background:var(--accent);color:#fff;">🎯</div>
+              <span style="color:var(--accent);">编排层</span>
+              <span style="font-weight:400; color:var(--gray-500); font-size:.75rem;">move_data_engine.py</span>
+            </div>
+            <div class="layer-modules">
+              <span class="layer-module" style="background:var(--accent-light); color:var(--accent);">流程节点分派</span>
+              <span class="layer-module" style="background:var(--accent-light); color:var(--accent);">文件类型路由</span>
+              <span class="layer-module" style="background:var(--accent-light); color:var(--accent);">大文件/普通路径选择</span>
+            </div>
+          </div>
+          <div class="layer" style="background: #ecfdf5;">
+            <div class="layer-label">
+              <div class="layer-label-icon" style="background:var(--success);color:#fff;">📁</div>
+              <span style="color:var(--success);">文件读取层</span>
+              <span style="font-weight:400; color:var(--gray-500); font-size:.75rem;">move_data_node/</span>
+            </div>
+            <div class="layer-modules">
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">DBF</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">TXT</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">Excel</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">CSV</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">JSON</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">XML</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">T2</span>
+            </div>
+          </div>
+          <div class="layer" style="background: #fffbeb;">
+            <div class="layer-label">
+              <div class="layer-label-icon" style="background:var(--warning);color:#fff;">⚙️</div>
+              <span style="color:var(--warning);">数据加工层</span>
+            </div>
+            <div class="layer-modules" style="gap:4px;">
+              <span class="layer-module" style="background:#fef3c7; color:#92400e;">FilterEngine</span>
+              <span style="color:var(--gray-400); font-size:1.2rem;">→</span>
+              <span class="layer-module" style="background:var(--accent-light); color:var(--accent);">FieldMapping</span>
+              <span style="color:var(--gray-400); font-size:1.2rem;">→</span>
+              <span class="layer-module" style="background:#fce7f3; color:#9d174d;">ProcessEngine</span>
+              <span style="color:var(--gray-400); font-size:1.2rem;">→</span>
+              <span class="layer-module" style="background:var(--success-bg); color:var(--success);">CleanEngine</span>
+            </div>
+          </div>
+          <div class="layer" style="background: var(--gray-50);">
+            <div class="layer-label">
+              <div class="layer-label-icon" style="background:var(--gray-600);color:#fff;">🏗️</div>
+              <span style="color:var(--gray-600);">基础设施层</span>
+            </div>
+            <div class="layer-modules">
+              <span class="layer-module" style="background:var(--gray-100); color:var(--gray-700);">Context 上下文</span>
+              <span class="layer-module" style="background:var(--gray-100); color:var(--gray-700);">DB 连接池</span>
+              <span class="layer-module" style="background:var(--gray-100); color:var(--gray-700);">Redis 客户端</span>
+              <span class="layer-module" style="background:var(--gray-100); color:var(--gray-700);">Config 管理器</span>
+              <span class="layer-module" style="background:var(--gray-100); color:var(--gray-700);">Log 日志</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">核心领域对象 — Context（上下文）</h3>
+        <p style="margin-bottom:16px; font-size:.9rem; color:var(--gray-600);">Context 是贯穿整个处理流程的核心状态对象，采用<strong>双字典同步</strong>设计：</p>
+        <div class="dual-dict">
+          <div class="dict-box">
+            <div class="dict-header" style="background: linear-gradient(135deg, var(--primary), var(--accent));">_context（带括号 · 变量替换）</div>
+            <div class="dict-body">
+              <div class="dict-row"><span class="dict-key">[FUND_ID]</span><span class="dict-val">→ "001"</span></div>
+              <div class="dict-row"><span class="dict-key">[BUSINESS_DATE]</span><span class="dict-val">→ 20241212</span></div>
+              <div class="dict-row"><span class="dict-key">[FILE_PATH]</span><span class="dict-val">→ "/data/file.dbf"</span></div>
+            </div>
+          </div>
+          <div class="dict-box">
+            <div class="dict-header" style="background: linear-gradient(135deg, var(--success), #0d9488);">_simple_context（无括号 · SQL 绑定参数）</div>
+            <div class="dict-body">
+              <div class="dict-row"><span class="dict-key">FUND_ID</span><span class="dict-val">→ "001"</span></div>
+              <div class="dict-row"><span class="dict-key">BUSINESS_DATE</span><span class="dict-val">→ 20241212</span></div>
+              <div class="dict-row"><span class="dict-key">FILE_PATH</span><span class="dict-val">→ "/data/file.dbf"</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="card-grid card-grid-3">
+            <div class="card" style="padding:16px; text-align:center;">
+              <strong style="font-size:.85rem;">大小写不敏感</strong>
+              <p style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">所有 key 自动转大写</p>
+            </div>
+            <div class="card" style="padding:16px; text-align:center;">
+              <strong style="font-size:.85rem;">双字典同步</strong>
+              <p style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">set/remove 时自动更新</p>
+            </div>
+            <div class="card" style="padding:16px; text-align:center;">
+              <strong style="font-size:.85rem;">集合类型支持</strong>
+              <p style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">[[COLLECTION.FIELD]] 变量</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">核心领域对象 — FlowNode &amp; InvokeMode</h3>
+        <div class="card-grid card-grid-2">
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:14px;">FlowNode 流程节点类型</h4>
+            <div class="table-wrap" style="border:none; box-shadow:none;">
+              <table style="font-size:.82rem;">
+                <tbody>
+                  <tr><td><span class="badge badge-blue">1</span></td><td><strong>MOVE_DATA_NODE</strong></td><td>读取文件 → 过滤 → 映射 → 入库</td></tr>
+                  <tr><td><span class="badge badge-purple">2</span></td><td><strong>EXECUTE_SQL_NODE</strong></td><td>执行 DML SQL（带上下文参数绑定）</td></tr>
+                  <tr><td><span class="badge badge-green">3</span></td><td><strong>BUILD_CONTEXT_NODE</strong></td><td>从 SQL/XML/常量构建上下文变量</td></tr>
+                  <tr><td><span class="badge badge-yellow">4</span></td><td><strong>CHECK_NODE</strong></td><td>校验数据或条件，不通过则中断流程</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:14px;">InvokeMode 调用模式</h4>
+            <div class="table-wrap" style="border:none; box-shadow:none;">
+              <table style="font-size:.82rem;">
+                <thead><tr><th>模式</th><th>值</th><th>写库</th><th>返回数据</th></tr></thead>
+                <tbody>
+                  <tr><td>NORMAL</td><td>1</td><td>✅</td><td>❌</td></tr>
+                  <tr><td>TEST_NO_WRITE</td><td>2</td><td>❌</td><td>✅ 前10行</td></tr>
+                  <tr><td>TEST_WRITE</td><td>3</td><td>✅</td><td>✅ 前10行</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5. 核心数据流 ==================== -->
+    <section class="section" id="dataflow">
+      <div class="section-header">
+        <div class="section-number">05</div>
+        <h2 class="section-title">核心数据流</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">主处理流程</h3>
+        <div class="diagram">
+          <div class="fc">
+            <div class="fc-node" style="background:var(--primary-light); color:var(--primary);">
+              HTTP POST /execute/read<small>JSON 请求体包含文件路径、读取规则、流程节点列表</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:#e0e7ff; color:#3730a3;">
+              ① 请求解析与上下文初始化<small>创建 Context → 注入标准变量 [FUND_ID] [BUSINESS_DATE] [UUID] → 合并 contextMap → 限流检查 (9次/秒/进程)</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:#ede9fe; color:var(--accent);">
+              ② 遍历 flowNodeList<small>move_data_engine.move_data() → 读取 implement_type → PAGE 模式按 FileType 分派 / SCRIPT 模式 exec() 执行脚本</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--success-bg); color:var(--success);">
+              ③ 文件读取<small>按文件类型分派到独立处理器 (DBF/TXT/Excel/CSV/JSON/XML/T2) → 生成 pandas DataFrame</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:#fef3c7; color:#92400e;">
+              ④ 数据加工流水线 (MigrateCoreEngine.dataframe_to_oracle)<small>4a. 过滤 (FilterEngine) → 4b. 字段映射 (FieldMapping) → 4c. 入库 (to_sql) → 4d. 后置SQL (CleanEngine)</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--primary-light); color:var(--primary);">
+              ⑤ 构造响应<small>NORMAL: {code:200} / TEST: {code:200, data:{dataList, fieldNameList}} / 异常: {code:-500} / 限流: {code:-429}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">大文件处理流程</h3>
+        <div class="diagram">
+          <div class="fc">
+            <div class="fc-node" style="background:var(--warning-bg); color:var(--warning);">
+              检测到大文件<small>DBF &gt;100万行 / TXT &gt;100MB / 接口ID=000001</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:#fef3c7; color:#92400e;">
+              设置 [READ_BIG_FILE_FLAG] = True · 跳过限流检查
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-branch">
+              <div class="fc-branch-item">
+                <div class="fc-node" style="background:#dbeafe; color:var(--primary); font-size:.8rem;">
+                  <strong>DBF 大文件</strong><small>记录范围分区<br>total_records / pool_size</small>
+                </div>
+              </div>
+              <div class="fc-branch-item">
+                <div class="fc-node" style="background:#ede9fe; color:var(--accent); font-size:.8rem;">
+                  <strong>TXT 大文件</strong><small>先分块读取到内存<br>pd.read_csv(chunksize)</small>
+                </div>
+              </div>
+              <div class="fc-branch-item">
+                <div class="fc-node" style="background:var(--gray-100); color:var(--gray-600); font-size:.8rem;">
+                  <strong>其他格式</strong><small>走普通路径</small>
+                </div>
+              </div>
+            </div>
+            <div class="fc-down" style="height:16px;"></div>
+            <div class="fc-node" style="background:var(--success-bg); color:var(--success);">
+              multiprocessing.Pool.starmap()<small>每个子进程：独立创建 DB 引擎 (pool=1) → 独立调用 dataframe_to_oracle() → 完成后 dispose()</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--danger-bg); color:var(--danger);">
+              Redis 并发控制 (仅 DBF)<small>SET NX key=file_path TTL=60s · 防止同一文件并发读取 · 处理完毕后释放锁</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 6. API 设计 ==================== -->
+    <section class="section" id="api">
+      <div class="section-header">
+        <div class="section-number">06</div>
+        <h2 class="section-title">API 设计</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">接口总览</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>接口</th><th>方法</th><th>用途</th><th>限流</th></tr></thead>
+            <tbody>
+              <tr><td><code>/execute/read</code></td><td>POST</td><td>标准文件读取与入库</td><td><span class="badge badge-green">✅ 9次/秒</span></td></tr>
+              <tr><td><code>/execute/read_big_file</code></td><td>POST</td><td>大文件读取与入库</td><td><span class="badge badge-yellow">❌ 不限流</span></td></tr>
+              <tr><td><code>/execute/script</code></td><td>POST</td><td>执行任意 Python 脚本</td><td><span class="badge badge-yellow">❌ 不限流</span></td></tr>
+              <tr><td><code>/execute/filesScript</code></td><td>POST</td><td>读取并执行磁盘脚本文件</td><td><span class="badge badge-yellow">❌ 不限流</span></td></tr>
+              <tr><td><code>/health</code></td><td>GET/POST</td><td>健康检查</td><td><span class="badge badge-yellow">❌</span></td></tr>
+              <tr><td><code>/test</code></td><td>GET/POST</td><td>健康检查（含限流测试）</td><td><span class="badge badge-green">✅</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">请求结构（/execute/read）</h3>
+        <div class="code-block">
+{<br>
+&nbsp;&nbsp;<span class="s">"filePathAndName"</span>: <span class="s">"/data/SJZHQ.DBF"</span>,<br>
+&nbsp;&nbsp;<span class="s">"fundId"</span>: <span class="s">"001"</span>,<br>
+&nbsp;&nbsp;<span class="s">"fundCode"</span>: <span class="s">"FUND001"</span>,<br>
+&nbsp;&nbsp;<span class="s">"businessDate"</span>: <span class="n">20241212</span>,<br>
+&nbsp;&nbsp;<span class="s">"fileId"</span>: <span class="s">"INTF_001"</span>,<br>
+&nbsp;&nbsp;<span class="s">"invokeMode"</span>: <span class="n">1</span>,<br>
+&nbsp;&nbsp;<span class="s">"needRateLimitControl"</span>: <span class="n">1</span>,<br>
+&nbsp;&nbsp;<span class="s">"encoding"</span>: <span class="s">"utf-8"</span>,<br>
+&nbsp;&nbsp;<span class="s">"contextMap"</span>: { <span class="s">"CUSTOM_VAR"</span>: <span class="s">"custom_value"</span> },<br>
+&nbsp;&nbsp;<span class="s">"readRule"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"interfaceId"</span>: <span class="s">"INTF_001"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"flowNodeList"</span>: [{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"fileFmt"</span>: <span class="s">"DBF"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"rdMode"</span>: <span class="s">"PAGE"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"fileFieldMappingDTOList"</span>: [...],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"fileDbfParseRuleDTO"</span>: {...}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}]<br>
+&nbsp;&nbsp;}<br>
+}
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">两个读取接口对比</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>维度</th><th>/execute/read</th><th>/execute/read_big_file</th></tr></thead>
+            <tbody>
+              <tr><td>限流</td><td><span class="badge badge-green">✅ 默认启用</span></td><td><span class="badge badge-yellow">❌ 不限流</span></td></tr>
+              <tr><td>[JSON_DATA]</td><td>✅ 从请求提取</td><td>❌ 不提取</td></tr>
+              <tr><td>DBF 处理</td><td>分块串行，自动升级多进程</td><td>直接使用多进程池</td></tr>
+              <tr><td>CSV 处理</td><td>✅</td><td>❌ (pass)</td></tr>
+              <tr><td>DB 连接</td><td>共享连接池</td><td>每进程独立引擎</td></tr>
+              <tr><td>设计意图</td><td>通用处理</td><td>独立部署，少量进程共享一个进程池</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 7. 组件详细设计 ==================== -->
+    <section class="section" id="components">
+      <div class="section-header">
+        <div class="section-number">07</div>
+        <h2 class="section-title">组件详细设计</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">FilterEngine 过滤引擎</h3>
+        <div class="card">
+          <p style="font-size:.9rem; margin-bottom:16px;"><strong>职责：</strong>根据 filterLogic 表达式对 DataFrame 进行行级过滤 · <strong>执行机制：</strong>pandas DataFrame.query()</p>
+          <div class="var-sub">
+            <div class="var-sub-step">
+              <div class="var-sub-label" style="background:var(--primary-light); color:var(--primary);">阶段1</div>
+              <div class="var-sub-content"><strong>标量变量替换：</strong><code>[VAR]</code> → 从 Context 取值直接替换<br>例: <code>"FUND_ID == '[FUND_ID]'"</code> → <code>"FUND_ID == '001'"</code></div>
+            </div>
+            <div class="var-sub-step">
+              <div class="var-sub-label" style="background:var(--accent-light); color:var(--accent);">阶段2</div>
+              <div class="var-sub-content"><strong>集合变量替换（逐行展开）：</strong><code>[[COLLECTION.FIELD]]</code> → 从 Context 取集合，逐行替换后 query，结果拼接<br>例: 遍历 MY_LIST 每一行，生成多个 query 表达式，合并结果</div>
+            </div>
+          </div>
+          <p style="font-size:.82rem; color:var(--gray-500); margin-top:12px;">⚠️ 约束：每个过滤表达式只允许一个集合变量</p>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">FieldMapping 字段映射引擎</h3>
+        <div class="card">
+          <p style="font-size:.9rem; margin-bottom:16px;"><strong>职责：</strong>将源字段映射到目标字段，并调用 ProcessEngine 进行类型转换和逻辑处理</p>
+          <div class="fc">
+            <div class="fc-node" style="background:var(--primary-light); color:var(--primary); font-size:.82rem;">
+              输入: sourceField
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-branch">
+              <div class="fc-branch-item">
+                <div class="fc-node" style="background:#fef3c7; color:#92400e; font-size:.78rem;">
+                  <strong>[RECNUM]</strong><small>生成行号列 (1,2,3,...)</small>
+                </div>
+              </div>
+              <div class="fc-branch-item">
+                <div class="fc-node" style="background:var(--accent-light); color:var(--accent); font-size:.78rem;">
+                  <strong>[UUID]</strong><small>生成32位hex UUID列</small>
+                </div>
+              </div>
+              <div class="fc-branch-item">
+                <div class="fc-node" style="background:#fce7f3; color:#9d174d; font-size:.78rem;">
+                  <strong>[UUID_10]</strong><small>生成十进制UUID列</small>
+                </div>
+              </div>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--success-bg); color:var(--success); font-size:.82rem;">
+              其他字段: 替换 [VAR] → 得到实际列名 → 在 DataFrame 中查找 → 找到则使用该列数据 / 未找到则从 Context 取值作为常量列 → 调用 ProcessEngine
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">ProcessEngine 逻辑处理引擎</h3>
+        <div class="card-grid card-grid-2">
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:12px; color:var(--primary);">阶段1: 类型强制转换</h4>
+            <div class="table-wrap" style="border:none; box-shadow:none;">
+              <table style="font-size:.82rem;">
+                <tbody>
+                  <tr><td><span class="badge badge-blue">STRING</span></td><td>str() + strip() (除非 keep_original_space)</td></tr>
+                  <tr><td><span class="badge badge-purple">DECIMAL</span></td><td>pd.to_numeric(errors='coerce')</td></tr>
+                  <tr><td><span class="badge badge-green">DATETIME</span></td><td>pd.to_datetime(format='mixed', errors='coerce')</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:12px; color:var(--accent);">阶段2: 业务逻辑处理</h4>
+            <div class="table-wrap" style="border:none; box-shadow:none;">
+              <table style="font-size:.82rem;">
+                <tbody>
+                  <tr><td><span class="badge badge-yellow">SIMPLE(1)</span></td><td>"$" 替换为 "x"，eval("x + 2") 逐行执行</td></tr>
+                  <tr><td><span class="badge badge-red">ORIGINAL(2)</span></td><td>exec() 执行任意 Python 代码，操作整个列</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">文件格式处理器</h3>
+        <div class="card-grid card-grid-7">
+          <div class="card format-card" style="border-top-color: var(--primary);">
+            <div class="format-icon">📊</div>
+            <h4>DBF</h4>
+            <p>simpledbfdm / dbfreaddm<br>分块+多进程<br>Redis 并发控制</p>
+          </div>
+          <div class="card format-card" style="border-top-color: var(--accent);">
+            <div class="format-icon">📝</div>
+            <h4>TXT</h4>
+            <p>分隔符/位置模式<br>mktdt04 乱码修复<br>>100MB 多进程</p>
+          </div>
+          <div class="card format-card" style="border-top-color: var(--success);">
+            <div class="format-icon">📗</div>
+            <h4>Excel</h4>
+            <p>xlsx2csv 降级<br>dtype=str<br>列名/列位置模式</p>
+          </div>
+          <div class="card format-card" style="border-top-color: var(--warning);">
+            <div class="format-icon">📄</div>
+            <h4>CSV</h4>
+            <p>pd.read_csv<br>GBK 编码<br>分块处理</p>
+          </div>
+          <div class="card format-card" style="border-top-color: #be185d;">
+            <div class="format-icon">{ }</div>
+            <h4>JSON</h4>
+            <p>请求体传入<br>json.loads<br>列重命名</p>
+          </div>
+          <div class="card format-card" style="border-top-color: #0d9488;">
+            <div class="format-icon">🔖</div>
+            <h4>XML</h4>
+            <p>lxml XPath<br>命名空间剥离<br>分块(10万)</p>
+          </div>
+          <div class="card format-card" style="border-top-color: #6366f1;">
+            <div class="format-icon">🌐</div>
+            <h4>T2</h4>
+            <p>HTTP POST<br>URL 可配置<br>JSON → DataFrame</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 8. 数据库架构 ==================== -->
+    <section class="section" id="database">
+      <div class="section-header">
+        <div class="section-number">08</div>
+        <h2 class="section-title">数据库架构</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">双连接模型</h3>
+        <div class="db-diagram">
+          <div class="db-model">
+            <div class="db-model-header" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark));">
+              🗄️ OceanBaseDbUtil（单例 · 共享连接池）
+            </div>
+            <div class="db-model-body">
+              <div class="db-model-row"><span class="badge badge-blue">pool_size</span> 3</div>
+              <div class="db-model-row"><span class="badge badge-blue">max_overflow</span> 20</div>
+              <div class="db-model-row"><span class="badge badge-blue">pool_recycle</span> 1800s</div>
+              <div class="db-model-row"><span class="badge badge-blue">pool_timeout</span> 30s</div>
+              <div class="db-model-row" style="color:var(--gray-500); font-style:italic; font-size:.78rem;">线程1 ──→ 连接池 ──→ OceanBase</div>
+              <div class="db-model-row" style="color:var(--gray-500); font-style:italic; font-size:.78rem;">线程2 ──→ 连接池 ──→ OceanBase</div>
+              <div class="db-model-row" style="margin-top:8px;"><span class="badge badge-green">适用</span> 普通文件处理路径</div>
+            </div>
+          </div>
+          <div class="db-model">
+            <div class="db-model-header" style="background: linear-gradient(135deg, var(--warning), #b45309);">
+              ⚡ OceanBaseMultiProcessDbUtil（每次新建 · 每进程独立）
+            </div>
+            <div class="db-model-body">
+              <div class="db-model-row"><span class="badge badge-yellow">pool_size</span> 1 (硬编码)</div>
+              <div class="db-model-row"><span class="badge badge-yellow">max_overflow</span> 无</div>
+              <div class="db-model-row"><span class="badge badge-red">生命周期</span> 使用后 dispose()</div>
+              <div class="db-model-row" style="color:var(--gray-500); font-style:italic; font-size:.78rem;">子进程A ──→ Engine_A (pool=1) ──→ OceanBase</div>
+              <div class="db-model-row" style="color:var(--gray-500); font-style:italic; font-size:.78rem;">子进程B ──→ Engine_B (pool=1) ──→ OceanBase</div>
+              <div class="db-model-row" style="margin-top:8px;"><span class="badge badge-green">适用</span> 大文件多进程路径</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px; padding:16px; background:var(--warning-bg); border-color:var(--warning);">
+          <p style="font-size:.85rem; color:#92400e;"><strong>设计原因：</strong>SQLAlchemy Engine 的连接池在 fork() 后不安全，子进程必须创建独立的 Engine，不能继承父进程的连接池。</p>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">SQL 变量绑定机制</h3>
+        <div class="diagram">
+          <div class="fc">
+            <div class="fc-node" style="background:var(--primary-light); color:var(--primary); font-size:.82rem;">
+              Context: [NAME] = 'Tom', [AGE] = 25
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--accent-light); color:var(--accent); font-size:.82rem;">
+              原始 SQL: <code>SELECT * FROM T WHERE name = [NAME] AND age = [AGE]</code>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:#fef3c7; color:#92400e; font-size:.82rem;">
+              SqlUtil.replace_sql():<br>1. PURE_STR_REPLACE([VAR]) → 直接内联字符串值（用于 IN 子句等）<br>2. 其余 [VAR] → :VAR 绑定参数语法
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--success-bg); color:var(--success); font-size:.82rem;">
+              转换后: <code>SELECT * FROM T WHERE name = :NAME AND age = :AGE</code><br>
+              参数: {'NAME': 'Tom', 'AGE': 25}
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:#e0e7ff; color:#3730a3; font-size:.82rem;">
+              SQLAlchemy text(sql).bindparams(**params) → 安全执行
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">写入策略</h3>
+        <div class="card-grid card-grid-3">
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:2rem; font-weight:800; color:var(--primary);">3000</div>
+            <div style="font-size:.82rem; color:var(--gray-500);">行数 &gt; 50,000</div>
+          </div>
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:2rem; font-weight:800; color:var(--accent);">2000</div>
+            <div style="font-size:.82rem; color:var(--gray-500);">行数 &gt; 30,000</div>
+          </div>
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:2rem; font-weight:800; color:var(--success);">1000</div>
+            <div style="font-size:.82rem; color:var(--gray-500);">其他情况</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="card-grid card-grid-3">
+            <div class="card" style="padding:14px; text-align:center; font-size:.82rem;"><strong>表名强制小写</strong><br><span style="color:var(--gray-500);">避免 Oracle 双引号开销</span></div>
+            <div class="card" style="padding:14px; text-align:center; font-size:.82rem;"><strong>if_exists='append'</strong><br><span style="color:var(--gray-500);">追加写入模式</span></div>
+            <div class="card" style="padding:14px; text-align:center; font-size:.82rem;"><strong>NaN 统一替换</strong><br><span style="color:var(--gray-500);">NaN/None/'nan' → Python None</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 9. 并发与多进程 ==================== -->
+    <section class="section" id="concurrency">
+      <div class="section-header">
+        <div class="section-number">09</div>
+        <h2 class="section-title">并发与多进程模型</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">HTTP 层并发</h3>
+        <div class="diagram">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:20px;">
+            <div style="background:linear-gradient(135deg, var(--primary), var(--accent)); color:#fff; padding:16px 32px; border-radius:var(--radius-lg); text-align:center; font-weight:700;">
+              Gunicorn Master (PID: gunicorn.pid)<br><small style="font-weight:400; opacity:.8;">workers=1 · worker_class=gthread</small>
+            </div>
+            <div class="fc-down" style="height:16px;"></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+              <div style="background:var(--primary-light); color:var(--primary); padding:10px 16px; border-radius:8px; font-size:.82rem; font-weight:600;">Thread 1</div>
+              <div style="background:var(--primary-light); color:var(--primary); padding:10px 16px; border-radius:8px; font-size:.82rem; font-weight:600;">Thread 2</div>
+              <div style="background:var(--primary-light); color:var(--primary); padding:10px 16px; border-radius:8px; font-size:.82rem; font-weight:600;">Thread 3</div>
+              <div style="background:var(--gray-100); color:var(--gray-500); padding:10px 16px; border-radius:8px; font-size:.82rem;">...</div>
+              <div style="background:var(--primary-light); color:var(--primary); padding:10px 16px; border-radius:8px; font-size:.82rem; font-weight:600;">Thread 10</div>
+            </div>
+            <div class="fc-down" style="height:12px;"></div>
+            <div style="background:var(--gray-100); border:2px solid var(--gray-300); padding:14px 24px; border-radius:8px; font-size:.85rem; text-align:center; width:100%; max-width:400px;">
+              <strong>OceanBaseDbUtil 共享连接池</strong><br><small style="color:var(--gray-500);">pool_size=3, max_overflow=20</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">并发控制机制</h3>
+        <div class="card-grid card-grid-2">
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:12px; color:var(--primary);">🚦 限流 (ratelimit)</h4>
+            <ul style="font-size:.85rem; color:var(--gray-600); padding-left:18px; line-height:2;">
+              <li><strong>9 次/秒/进程</strong></li>
+              <li>needRateLimitControl=1 或缺省时启用</li>
+              <li>needRateLimitControl=2 时跳过</li>
+              <li>/execute/read_big_file 不限流</li>
+              <li style="color:var(--warning);">建议值: limit.calls = threads - 1</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.95rem; margin-bottom:12px; color:var(--danger);">🔒 Redis 文件锁 (仅 DBF)</h4>
+            <ul style="font-size:.85rem; color:var(--gray-600); padding-left:18px; line-height:2;">
+              <li><strong>SET NX</strong> key=file_path TTL=60s</li>
+              <li>防止同一 DBF 文件被并发读取</li>
+              <li>处理完毕后释放锁</li>
+              <li>超时自动释放 (60s)</li>
+              <li style="color:var(--danger);">并发读取导致严重性能退化</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 10. 配置管理 ==================== -->
+    <section class="section" id="config">
+      <div class="section-header">
+        <div class="section-number">10</div>
+        <h2 class="section-title">配置管理</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">配置加载机制</h3>
+        <div class="diagram">
+          <div class="fc">
+            <div class="fc-node" style="background:var(--primary-light); color:var(--primary); font-size:.82rem;">
+              MyConfig（懒加载单例）<small>从 cwd 向上逐级查找 application.yaml</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--accent-light); color:var(--accent); font-size:.82rem;">
+              get_config_value("redis.host")<small>点号分隔键逐层查找: application.yaml → redis → host</small>
+            </div>
+            <div class="fc-down"></div>
+            <div class="fc-node" style="background:var(--success-bg); color:var(--success); font-size:.82rem;">
+              包级封装: get_config_value(key, default_value=None)<small>异常或 None 时返回 default_value</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">关键配置项</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>配置键</th><th>默认值</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td><code>server.port</code></td><td>27777</td><td>HTTP 服务端口</td></tr>
+              <tr><td><code>read_tool.oceanbase.pool_size</code></td><td>3</td><td>连接池大小</td></tr>
+              <tr><td><code>read_tool.file.batch.process.pool.size</code></td><td>10</td><td>多进程池大小</td></tr>
+              <tr><td><code>dbf.chunk_size</code></td><td>10000</td><td>DBF 分块读取大小</td></tr>
+              <tr><td><code>dbf.using_multi_process_switch_count</code></td><td>1000000</td><td>DBF 多进程切换阈值</td></tr>
+              <tr><td><code>txt.chunk_size</code></td><td>10000</td><td>TXT 分块读取大小</td></tr>
+              <tr><td><code>limit.calls / limit.period</code></td><td>9 / 1</td><td>限流参数</td></tr>
+              <tr><td><code>redis.cluster / redis.nodes</code></td><td>true / —</td><td>Redis 集群配置</td></tr>
+              <tr><td><code>read_tool.t2.invoke.url</code></td><td>—</td><td>T2 API 地址</td></tr>
+              <tr><td><code>read_tool.pre_warm.switch</code></td><td>false</td><td>启动预热开关</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 11. 安全考量 ==================== -->
+    <section class="section" id="security">
+      <div class="section-header">
+        <div class="section-number">11</div>
+        <h2 class="section-title">安全考量</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">风险点评估</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>风险</th><th>严重程度</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>远程代码执行</strong></td>
+                <td><span class="severity-dot severity-critical"></span>🔴 严重</td>
+                <td>/execute/script 和 /execute/filesScript 通过 exec() 执行用户代码，无沙箱或权限控制</td>
+              </tr>
+              <tr>
+                <td><strong>数据库凭证明文</strong></td>
+                <td><span class="severity-dot severity-medium"></span>🟡 中等</td>
+                <td>application.yaml 中数据库密码以明文存储</td>
+              </tr>
+              <tr>
+                <td><strong>SQL 注入</strong></td>
+                <td><span class="severity-dot severity-low"></span>🟢 低</td>
+                <td>SQL 参数通过绑定参数执行；但 PURE_STR_REPLACE 直接内联值仍有风险</td>
+              </tr>
+              <tr>
+                <td><strong>进程逻辑执行</strong></td>
+                <td><span class="severity-dot severity-medium"></span>🟡 中等</td>
+                <td>ProcessEngine 的 SIMPLE(eval) / ORIGINAL(exec) 模式可执行任意 Python 代码</td>
+              </tr>
+              <tr>
+                <td><strong>文件路径遍历</strong></td>
+                <td><span class="severity-dot severity-medium"></span>🟡 中等</td>
+                <td>文件路径来自请求参数，未做路径合法性校验</td>
+              </tr>
+              <tr>
+                <td><strong>Redis 无认证</strong></td>
+                <td><span class="severity-dot severity-medium"></span>🟡 中等</td>
+                <td>Redis 连接未配置密码</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">现有防护措施</h3>
+        <div class="card-grid card-grid-4">
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">🛡️</div>
+            <div style="font-size:.85rem; font-weight:600;">SQL 参数绑定</div>
+            <div style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">防止 SQL 注入</div>
+          </div>
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">🚦</div>
+            <div style="font-size:.85rem; font-weight:600;">限流机制</div>
+            <div style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">防止突发流量</div>
+          </div>
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">🔒</div>
+            <div style="font-size:.85rem; font-weight:600;">Redis 文件锁</div>
+            <div style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">防止并发资源争用</div>
+          </div>
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">♻️</div>
+            <div style="font-size:.85rem; font-weight:600;">连接池回收</div>
+            <div style="font-size:.78rem; color:var(--gray-500); margin-top:4px;">防止连接泄漏</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 12. 部署架构 ==================== -->
+    <section class="section" id="deployment">
+      <div class="section-header">
+        <div class="section-number">12</div>
+        <h2 class="section-title">部署架构</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">标准部署</h3>
+        <div class="diagram">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:20px;">
+            <div style="background:linear-gradient(135deg, var(--primary), var(--primary-dark)); color:#fff; padding:20px 40px; border-radius:var(--radius-lg); text-align:center; width:100%; max-width:500px;">
+              <strong style="font-size:1rem;">Gunicorn Master</strong><br>
+              <small style="opacity:.8;">PID file: gunicorn.pid</small><br>
+              <small style="opacity:.8;">Worker 1 (1进程 × 10线程)</small><br>
+              <span class="badge" style="background:rgba(255,255,255,.2); color:#fff; margin-top:8px;">:27777</span>
+            </div>
+            <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center; width:100%;">
+              <div class="card" style="flex:1; min-width:200px; padding:16px;">
+                <h5 style="font-size:.85rem; margin-bottom:8px;">🛡️ daemon_monitor.sh</h5>
+                <p style="font-size:.78rem; color:var(--gray-500);">每5秒巡检<br>检测 Gunicorn 存活<br>异常自动重启</p>
+              </div>
+              <div class="card" style="flex:1; min-width:200px; padding:16px;">
+                <h5 style="font-size:.85rem; margin-bottom:8px;">📂 日志</h5>
+                <p style="font-size:.78rem; color:var(--gray-500);">../file-core-logs/<br>gunicorn.error.log (按日轮转, 50份)<br>gunicorn.access.log<br>app.log</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">大文件独立部署（推荐）</h3>
+        <div class="deploy-row">
+          <div class="deploy-box" style="border-color: var(--primary);">
+            <div class="deploy-box-header" style="background:var(--primary-light); color:var(--primary);">
+              🖥️ 普通文件服务 (端口 27777)
+            </div>
+            <div class="deploy-box-body">
+              <div class="deploy-item">workers=1, threads=10</div>
+              <div class="deploy-item">限流: 9次/秒</div>
+              <div class="deploy-item">进程池: 不使用</div>
+              <div class="deploy-item">检测到大 DBF → HTTP 转发到 28888</div>
+            </div>
+          </div>
+          <div class="deploy-box" style="border-color: var(--accent);">
+            <div class="deploy-box-header" style="background:var(--accent-light); color:var(--accent);">
+              🖥️ 大文件服务 (端口 28888)
+            </div>
+            <div class="deploy-box-body">
+              <div class="deploy-item">workers=1, threads=少量</div>
+              <div class="deploy-item">限流: 无</div>
+              <div class="deploy-item">进程池: 4 workers</div>
+              <div class="deploy-item">专用于大文件处理</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px; padding:16px; background:var(--primary-bg); border-color:var(--primary);">
+          <p style="font-size:.85rem; color:var(--primary-dark);"><strong>设计意图：</strong>大文件服务进程少但共享一个进程池（1×4=4个处理进程），避免每个 Gunicorn Worker 各自创建进程池导致资源膨胀。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 13. 已知问题与改进 ==================== -->
+    <section class="section" id="issues">
+      <div class="section-header">
+        <div class="section-number">13</div>
+        <h2 class="section-title">已知问题与改进方向</h2>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">已知代码问题</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>问题</th><th>位置</th><th>影响</th></tr></thead>
+            <tbody>
+              <tr><td>get_session() 调用不存在的 get_engine()</td><td><code>ocean_base_multi_process_db_util.py</code></td><td><span class="badge badge-red">多进程 session 创建失败</span></td></tr>
+              <tr><td>decode_responses=True 时仍调用 .decode()</td><td><code>redis_util.py</code></td><td><span class="badge badge-red">运行时 AttributeError</span></td></tr>
+              <tr><td>BelongLocalCache 非线程安全</td><td><code>belong_local_cache_util.py</code></td><td><span class="badge badge-yellow">并发缓存不一致</span></td></tr>
+              <tr><td>单例初始化无线程锁</td><td><code>ocean_base_db_util.py</code></td><td><span class="badge badge-yellow">可能重复创建 Engine</span></td></tr>
+              <tr><td>全局进程池未被使用</td><td><code>file_process_pool.py</code></td><td><span class="badge badge-yellow">废弃代码</span></td></tr>
+              <tr><td>遗留 print() 语句</td><td><code>LogUtil.py</code></td><td><span class="badge badge-yellow">导入时输出调试信息</span></td></tr>
+              <tr><td>入库前清洗被注释</td><td><code>migrate_core_engine.py</code></td><td><span class="badge badge-yellow">功能缺失</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">架构改进方向</h3>
+        <div class="card-grid card-grid-2">
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:8px;">🧪 测试体系</h4>
+            <p style="font-size:.82rem; color:var(--gray-500); margin-bottom:4px;">当前：无正式测试</p>
+            <p style="font-size:.82rem; color:var(--primary);">→ 建立单元测试 + 集成测试框架，CI/CD 流水线</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:8px;">📏 代码规范</h4>
+            <p style="font-size:.82rem; color:var(--gray-500); margin-bottom:4px;">当前：无 lint/format 配置</p>
+            <p style="font-size:.82rem; color:var(--primary);">→ 引入 ruff/black/isort + pre-commit</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:8px;">🔐 安全加固</h4>
+            <p style="font-size:.82rem; color:var(--gray-500); margin-bottom:4px;">当前：exec() 无沙箱，凭证明文</p>
+            <p style="font-size:.82rem; color:var(--primary);">→ 脚本接口增加鉴权+沙箱；凭证加密</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:8px;">📊 可观测性</h4>
+            <p style="font-size:.82rem; color:var(--gray-500); margin-bottom:4px;">当前：仅文件日志</p>
+            <p style="font-size:.82rem; color:var(--primary);">→ 增加 metrics + tracing</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:8px;">🎛️ 配置管理</h4>
+            <p style="font-size:.82rem; color:var(--gray-500); margin-bottom:4px;">当前：单一 YAML，无热更新</p>
+            <p style="font-size:.82rem; color:var(--primary);">→ 支持环境变量覆盖、配置热更新</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size:.9rem; margin-bottom:8px;">⚡ 大文件处理</h4>
+            <p style="font-size:.82rem; color:var(--gray-500); margin-bottom:4px;">当前：多进程 + 全量加载</p>
+            <p style="font-size:.82rem; color:var(--primary);">→ 考虑流式处理框架，减少内存占用</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /content-wrap -->
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">🔷 文件网关内核 · 系统架构设计</div>
+        <div style="margin-top:4px;">File Gateway Core — System Architecture Design</div>
+      </div>
+      <div style="text-align:right;">
+        <div>版本 1.0 · 2026-06-03</div>
+        <div style="margin-top:4px;">基于代码库 main 分支</div>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /main -->
+
+<!-- Back to top -->
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// Active nav tracking
+const sections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('.nav-item a');
+
+function updateActiveNav() {
+  let current = '';
+  sections.forEach(s => {
+    const top = s.offsetTop - 120;
+    if (window.scrollY >= top) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+
+// Back to top button
+function updateBackTop() {
+  const btn = document.getElementById('backTop');
+  btn.classList.toggle('show', window.scrollY > 400);
+}
+
+// Close sidebar on mobile when clicking a link
+navLinks.forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= 1024) {
+      document.querySelector('.sidebar').classList.remove('open');
+    }
+  });
+});
+
+window.addEventListener('scroll', () => {
+  updateActiveNav();
+  updateBackTop();
+}, { passive: true });
+
+// Initial
+updateActiveNav();
+updateBackTop();
+</script>
+</body>
+</html>
