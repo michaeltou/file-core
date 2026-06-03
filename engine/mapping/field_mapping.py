@@ -1,9 +1,10 @@
+import time
 import uuid
 
 import pandas as pd
 from engine.process.process_engine import ProcessEngine
 from engine.filter.filter_engine import FilterEngine
-
+import engine.util.log as log
 
 def uuid_to_decimal(uuid_obj):
     """将UUID转换为十进制"""
@@ -45,14 +46,20 @@ class FieldMapping:
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
             elif source_field == '[UUID]':
-                df['[UUID]'] = df.apply(lambda _: str(uuid.uuid4()).replace('-', ''), axis=1)
+                # 使用列表推导式批量生成UUID，比apply快10倍以上
+                # uuid.uuid4().hex 直接返回32位无连字符的十六进制字符串，比str(uuid4()).replace('-', '')更快
+                # df['[UUID]'] = df.apply(lambda _: str(uuid.uuid4()).replace('-', ''), axis=1)
+                df['[UUID]'] = [uuid.uuid4().hex for _ in range(len(df))]
+
                 ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type,
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
                 result_df[target_field] = df[source_field]
-
             elif source_field == '[UUID_10]':
-                df['[UUID_10]'] = df.apply(lambda _: uuid_to_decimal(uuid.uuid4()), axis=1)
+                # df['[UUID_10]'] = df.apply(lambda _: uuid_to_decimal(uuid.uuid4()), axis=1)
+                # 使用列表推导式批量生成UUID_10，提升性能
+                df['[UUID_10]'] = [uuid_to_decimal(uuid.uuid4()) for _ in range(len(df))]
+
                 ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type,
                                                     date_format)
                 #  2 将处理后的数据，赋值给目标dataFrame
@@ -83,11 +90,11 @@ class FieldMapping:
                             context_param_value = context_instance.get(context_param_key)
                             process_logic = process_logic.replace(context_param_key, str(context_param_value))
 
-
                 # 如果配置的源字段在源文件中存在，则按照下面的方式处理
                 if source_field in column_names_in_files:
                     #  1 按照配置的加工逻辑处理处理源dataframe数据
                     ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format)
+
                     #  2 将处理后的数据，赋值给目标dataFrame
                     result_df[target_field] = df[source_field]
 
@@ -99,6 +106,7 @@ class FieldMapping:
                     df[source_field] = context_value
                     # 1 按照配置的加工逻辑处理处理源dataframe数据
                     ProcessEngine.process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format)
+
                     # 2 将处理后的数据，赋值给目标dataFrame
                     result_df[target_field] = df[source_field]
 

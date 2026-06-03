@@ -158,7 +158,6 @@ def one_process_do_task(file_path_and_name, encoding,start_index, end_index):
         decoded_record_list.append(one_decoded_record)
 
     end_time = time.time()
-    print("单个进程解析数据，耗时{}秒".format(end_time - start_time),'start_time=',start_time, 'end_time=',end_time)
     return None
 
 

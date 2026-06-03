@@ -22,7 +22,7 @@ def one_process_do_task_for_simpledbf(file_path_and_name, encoding,start_index, 
 
 
     start_time = time.time()
-    log.info('my_uuid %s 进程id %s 开始处理数据，记录个数是 %s, start_index= %s, end_index= %s',
+    log.info('my_uuid %s 并发 id %s 开始处理数据，记录个数是 %s, start_index= %s, end_index= %s',
              my_uuid,os.getpid(), end_index - start_index + 1 ,start_index, end_index )
 
     with open(file_path_and_name, 'rb') as file_for_one_process:
@@ -173,8 +173,8 @@ def one_process_do_task_for_simpledbf(file_path_and_name, encoding,start_index, 
         # 把一行记录添加到列表中
         decoded_record_list.append(one_decoded_record)
     end_time = time.time()
-    log.info("uuid:%s, 进程id:%s, 单个进程解析数据，耗时 %s 秒 start_time = %s end_time = %s",
-             my_uuid,os.getpid(),(end_time - start_time),  start_time,   end_time)
+    # log.info("uuid:%s, 进程id:%s, 单个进程解析数据，耗时 %s 秒 start_time = %s end_time = %s",
+    #          my_uuid,os.getpid(),(end_time - start_time),  start_time,   end_time)
 
     start_time = time.time()
     df_for_one_process = pd.DataFrame(decoded_record_list, columns=columns)

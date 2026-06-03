@@ -61,22 +61,22 @@ class MigrateCoreEngine(object):
         #     log.info("uuid: %s,处理数据 清理，总耗时：%s 秒", my_uuid, clean_end_time - clean_start_time)
 
 
-        filter_start_time = time.time()
+        # filter_start_time = time.time()
         # 1 处理过滤逻辑
         df = FilterEngine.process_filter(df, filter_logic, context_instance)
         log.info("uuid: %s,过滤后，要处理的dataFrame的记录数：%s", my_uuid, df.shape[0])
         if df.empty:
             log.info("uuid: %s,过滤后，没有数据需要继续处理", my_uuid)
             return
-        filter_end_time = time.time()
-        log.info("uuid: %s,过滤，总耗时：%s 秒", my_uuid, filter_end_time - filter_start_time)
+        # filter_end_time = time.time()
+        # log.info("uuid: %s,过滤，总耗时：%s 秒", my_uuid, filter_end_time - filter_start_time)
 
 
-        mapping_start_time = time.time()
+        # mapping_start_time = time.time()
         # 2 处理字段映射
         target_df = FieldMapping.process_field_mapping(df, field_mapping_config_list, context_instance)
-        mapping_end_time = time.time()
-        log.info("uuid: %s,映射+加工，总耗时：%s 秒", my_uuid, mapping_end_time - mapping_start_time)
+        # mapping_end_time = time.time()
+        # log.info("uuid: %s,映射+加工，总耗时：%s 秒", my_uuid, mapping_end_time - mapping_start_time)
 
         total_python_end_time = time.time()
         log.info("uuid: %s,处理数据 过滤+映射+加工，总耗时：%s 秒", my_uuid, total_python_end_time - total_python_start_time)
@@ -138,7 +138,7 @@ class MigrateCoreEngine(object):
             start_time = time.time()
 
             if read_big_file_flag:
-                log.info('uuid: %s,进入并发模式，获取数据库连接', my_uuid)
+                # log.info('uuid: %s,进入并发模式，获取数据库连接', my_uuid)
                 ocean_base_engine = OceanBaseMultiProcessDbUtil.get_one_process_engine()
             else:
                 log.info('uuid: %s,进入默认模式', my_uuid)
@@ -147,7 +147,7 @@ class MigrateCoreEngine(object):
 
 
             end_time = time.time()
-            log.info("获取oracle engine耗时：%s 秒", end_time - start_time)
+           # log.info("获取oracle engine耗时：%s 秒", end_time - start_time)
 
             #log.info("uuid: %s,要处理的dataFrame的前100条数据：%s", my_uuid, target_df.head(10))
 
@@ -162,7 +162,7 @@ class MigrateCoreEngine(object):
                                  dtype=dtype_dict,
                                  index=False, chunksize=db_insert_chunk_size)
                 if read_big_file_flag:
-                    log.info('uuid: %s,释放数据库连接', my_uuid)
+                    # log.info('uuid: %s,释放数据库连接', my_uuid)
                     ocean_base_engine.dispose()
 
             elif invoke_mode == InvokeMode.TEST_WRITE_TO_DB.value:
@@ -194,7 +194,7 @@ class MigrateCoreEngine(object):
             end_time = time.time()
 
             execution_time = end_time - start_time
-            log.info("uuid: %s, 进程ID:%s,插入数据库总耗时：%s 秒,记录数:%s", my_uuid, os.getpid(),execution_time,len(target_df))
+            log.info("uuid: %s, 并发ID:%s,插入数据库总耗时：%s 秒,记录数:%s", my_uuid, os.getpid(),execution_time,len(target_df))
 
 
 def formate_datetime_column(df_head, field_mapping_config_list):
