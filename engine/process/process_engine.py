@@ -37,8 +37,10 @@ class ProcessEngine:
             df[source_field] = df[source_field].replace('nan', None)
 
             # 先按照字符串的方式和指定的格式，进行数据转换
-            # df[source_field] = pd.to_datetime(df[source_field])
-            df[source_field] = pd.to_datetime(df[source_field], format='mixed', errors='coerce')
+            try:
+                df[source_field] = pd.to_datetime(df[source_field], format=date_format)
+            except Exception as e:
+                df[source_field] = pd.to_datetime(df[source_field], format='mixed', errors='coerce')
 
 
         # 2 再根据配置的[加工逻辑]对原始dataFrame的字段进行处理
