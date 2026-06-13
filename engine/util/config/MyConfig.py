@@ -15,7 +15,9 @@ class MyConfig(object):
     @classmethod
     def find_application_yaml(cls):
         current_directory = os.getcwd()
-        print('current_directory:', current_directory)
+        #print('current_directory:', current_directory)
+        if 'file-core' not in current_directory:
+            current_directory = '/home/phfund/software/file-core'
 
         while current_directory != os.path.dirname(current_directory):  # 避免无限循环
             file_path = os.path.join(current_directory, "application.yaml")

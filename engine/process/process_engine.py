@@ -6,6 +6,7 @@ from engine.db.oracle_read_tool_db_util import *
 from datetime import datetime
 import pandas as pd
 import engine.util.log as log
+from decimal import Decimal
 
 class ProcessEngine:
     def __init__(self):
@@ -14,10 +15,17 @@ class ProcessEngine:
     @staticmethod
     def process_process_logic(context_instance,df, source_field, process_logic, process_logic_type, field_type, date_format):
         my_uuid = context_instance.get('[UUID]')
+        interface_id = context_instance.get('[INTERFACE_ID]')
 
         # # 1 对dataFrame进行预处理（按照类型进行转换，去除空格，按照时间格式进行转换）
         if field_type == FieldType.DECIMAL.value:
-            df[source_field] = pd.to_numeric(df[source_field], errors='coerce')
+            if need_process_high_precision(interface_id):
+                df[source_field] = df[source_field].apply(
+                    lambda x: Decimal(str(x)) if pd.notna(x) and str(x).strip() != '' else None)
+            else:
+                df[source_field] = pd.to_numeric(df[source_field], errors='coerce')
+
+
         elif field_type == FieldType.STRING.value:
 
             if process_logic is not None and 'keep_original_space' in process_logic:
@@ -59,6 +67,12 @@ class ProcessEngine:
                 raise RuntimeError("未知的加工逻辑类型")
 
 
+def need_process_high_precision(interface_id):
+    need_high_precision_interface_id_list = ['DR_WGJ_ZX_YPJHL']
+    if interface_id in need_high_precision_interface_id_list:
+        return True
+    else:
+        return False
 
 # 能自动失败日期格式，如果无法转换，则会置为空字符串
 def my_parse_date(date_str, point_format='%Y-%m-%d'):
