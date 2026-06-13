@@ -15,6 +15,8 @@ class MyConfig(object):
     @classmethod
     def find_application_yaml(cls):
         current_directory = os.getcwd()
+        print('current_directory:', current_directory)
+
         while current_directory != os.path.dirname(current_directory):  # 避免无限循环
             file_path = os.path.join(current_directory, "application.yaml")
             if os.path.exists(file_path):
@@ -27,7 +29,7 @@ class MyConfig(object):
     def _init_config_if_not_initialized(cls):
         if not cls.config:
             file_path = cls.find_application_yaml()
-            # print("config file path: ", file_path)
+            print("config file path: ", file_path)
             if file_path:
                 with open(file_path, "r") as f:
                     cls.config = yaml.safe_load(f)

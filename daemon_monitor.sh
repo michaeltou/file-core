@@ -3,11 +3,17 @@
 # 守护进程监控脚本
 # 用于监控 file-core 服务，当服务挂掉时自动重启
 
+
 # 配置参数
+#----------------------------- 变量定义 -------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PHFUND_HOME="/home/phfund"
+SOFTWARE_DIR="${PHFUND_HOME}/software"
+APP_DIR="${SOFTWARE_DIR}/file-core"
+LOG_FILE="${SOFTWARE_DIR}/file-core-logs/daemon_monitor.log"
 APP_NAME="file-core"
-APP_DIR="/Users/douming/code/yss/file-core"
-LOG_FILE="/Users/douming/code/file-core-logs/daemon_monitor.log"
-CHECK_INTERVAL=5  # 检查间隔（秒）
+CHECK_INTERVAL=300  # 检查间隔（秒）
+
 
 # 日志函数
 log() {

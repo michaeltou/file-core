@@ -1,8 +1,8 @@
 #!/bin/bash
 #=============================================================================
-# 脚本名称: setup_env.sh
+# 脚本名称: setup_env_and_install_file_core.sh
 # 描  述:   一键部署 Python 3.9 环境 + OceanBase 驱动 + 离线依赖包
-# 用  法:   以 root 用户执行: bash setup_env.sh
+# 用  法:   以 root 用户执行: bash setup_env_and_install_file_core.sh
 # 前  提:   1. 当前用户为 root
 #           2. python-3.9.13.zip 放在与脚本同目录
 #           3. libobclient / obci 两个 rpm 放在与脚本同目录
@@ -44,8 +44,8 @@ prerequisite_check() {
     local missing=0
     for f in python-3.9.13.zip \
              libobclient-2.2.11.1-52025091715.el7.x86_64.rpm \
-             obci-2.1.1-342025070917.el7.x86_64.rpm \
-             file-core-all-whl.zip; do
+             obci-2.1.1.1-82025092415.el7.x86_64;do
+
         if [[ ! -f "${SCRIPT_DIR}/${f}" ]]; then
             error "缺少文件: ${SCRIPT_DIR}/${f}"
             missing=1
@@ -102,8 +102,8 @@ step2_configure_env() {
             if ! grep -q "python-3.9.13/lib" ~/.bash_profile; then
                 cat >> ~/.bash_profile << "PYEOF"
 
-export LD_LIBRARY_PATH=/home/phfund/software/python-3.9.13/lib:$LD_LIBRARY_PATH
-export PATH=/home/phfund/software/python-3.9.13/bin:$PATH
+                export LD_LIBRARY_PATH=/home/phfund/software/python-3.9.13/lib:$LD_LIBRARY_PATH
+                export PATH=/home/phfund/software/python-3.9.13/bin:$PATH
 PYEOF
             fi
             echo "[INFO] 已添加 Python 环境变量"
@@ -137,17 +137,17 @@ step3_create_symlinks() {
 step4_verify_python() {
     info "====== 步骤4: 验证 Python ======"
 
-    if python3 --version 2>/dev/null; then
-        info "Python 安装验证通过"
+    if su - phfund -c 'python3 --version' 2>/dev/null; then
+        info "python3 安装验证通过"
     else
-        error "Python 验证失败，请检查安装"
+        error "python3 验证失败，请检查安装"
         exit 1
     fi
 
-    if pip3 --version 2>/dev/null; then
-        info "pip 安装验证通过"
+    if su - phfund -c ' pip3 --version' 2>/dev/null; then
+        info "pip3 安装验证通过"
     else
-        error "pip 验证失败，请检查安装"
+        error "pip3 验证失败，请检查安装"
         exit 1
     fi
 }
@@ -167,7 +167,7 @@ step5_install_obclient_rpm() {
     rpm -ivh "${SCRIPT_DIR}/libobclient-2.2.11.1-52025091715.el7.x86_64.rpm"
     info "libobclient 安装完成"
 
-    rpm -ivh "${SCRIPT_DIR}/obci-2.1.1-342025070917.el7.x86_64.rpm"
+    rpm -ivh "${SCRIPT_DIR}/obci-2.1.1.1-82025092415.el7.x86_64"
     info "obci 安装完成"
 
     # 版本校验
@@ -202,7 +202,7 @@ step6_install_cx_oracle() {
     info "cx_Oracle 安装完成"
 
     # 验证
-    su - phfund -c "pip3 list 2>/dev/null | grep -i cx_Oracle" && \
+    su - phfund -c "pip3 list 2>/dev/null | grep -i cx-Oracle" && \
         info "cx_Oracle 已在 pip3 list 中" || \
         warn "cx_Oracle 未在 pip3 list 中找到，请检查"
 }
@@ -297,7 +297,7 @@ step9_install_targz() {
 main() {
     echo ""
     echo "============================================"
-    echo "  一键部署: Python + OceanBase + 离线依赖"
+    echo "  一键部署: Python + OceanBase驱动"
     echo "============================================"
     echo ""
 
@@ -316,10 +316,10 @@ main() {
     step6_install_cx_oracle
     step7_configure_ob_env
 
-    echo ""
-    info "========== 三、安装离线依赖包 =========="
-    step8_install_whl
-    step9_install_targz
+#    echo ""
+#    info "========== 三、安装离线依赖包 =========="
+##    step8_install_whl
+##    step9_install_targz
 
     echo ""
     echo "============================================"
@@ -329,7 +329,7 @@ main() {
     info "请 phfund 用户重新登录后执行以下命令确认环境:"
     info "  python3 --version"
     info "  pip3 --version"
-    info "  pip3 list | grep -iE 'cx_Oracle|ratelimit|simpledbf'"
+    info "  pip3 list | grep -iE 'cx-Oracle|ratelimit|simpledbf'"
     info "  echo \$LD_LIBRARY_PATH"
 }
 
