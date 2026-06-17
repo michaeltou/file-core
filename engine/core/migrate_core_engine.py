@@ -17,7 +17,9 @@ from sqlalchemy import  Integer, String, Float,DECIMAL
 from engine.cnst.FieldType import *
 import engine.util.log as log
 import pandas as pd
-
+from engine.db.oceanbase.ocean_base_file_gz_db_util import OceanBaseFileGZDbUtil
+from engine.db.oceanbase.ocean_base_file_tzzj_db_util import OceanBaseFileTzzjDbUtil
+from engine.db.oceanbase.ocean_base_file_rzqs_db_util import OceanBaseFileRzqsDbUtil
 
 
 
@@ -135,18 +137,19 @@ class MigrateCoreEngine(object):
                 db_insert_chunk_size = 1000
 
             # oracle_engine = get_global_engine()
-            start_time = time.time()
+
+
+            app = context_instance.get('[APP]')
 
             if read_big_file_flag:
                 # log.info('uuid: %s,进入并发模式，获取数据库连接', my_uuid)
-                ocean_base_engine = OceanBaseMultiProcessDbUtil.get_one_process_engine()
+                ocean_base_engine = OceanBaseMultiProcessDbUtil.get_one_process_engine_for_multi_app(app)
             else:
-                log.info('uuid: %s,进入默认模式', my_uuid)
-                ocean_base_engine = OceanBaseDbUtil.get_engine()
+                # log.info('uuid: %s,进入默认模式', my_uuid)
+                # 默认数据库
+                ocean_base_engine = OceanBaseDbUtil.get_engine_for_app(app)
 
-
-
-            end_time = time.time()
+            # end_time = time.time()
            # log.info("获取oracle engine耗时：%s 秒", end_time - start_time)
 
             #log.info("uuid: %s,要处理的dataFrame的前100条数据：%s", my_uuid, target_df.head(10))

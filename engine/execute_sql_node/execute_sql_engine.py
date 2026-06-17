@@ -2,6 +2,8 @@ from engine.db.oracle_read_tool_db_util import *
 from engine.core.context import *
 from engine.util.sql.SqlUtil import replace_sql
 
+from engine.clean.clean_engine import CleanEngine
+
 
 def execute_node_sql(flow_node, context_instance):
     # 上下文是个map，里面包含了所有变量和参数，刚好可以传给sql语句
@@ -12,9 +14,7 @@ def execute_node_sql(flow_node, context_instance):
     sql = replace_sql(sql, context_instance)
     # sql_type = flow_node_sql_config['sqlType']
     # context_param_type = flow_node_sql_config['contextParamType']
-    execute_dml_sql(sql, params)
-
-
+    #execute_dml_sql(sql, params)
 
 
 

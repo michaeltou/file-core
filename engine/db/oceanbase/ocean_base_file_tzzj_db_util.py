@@ -9,13 +9,8 @@ import engine.util.config as config
 import urllib.parse
 from engine.util.sql.SqlUtil import replace_sql
 
-from engine.db.oceanbase.ocean_base_file_gz_db_util import OceanBaseFileGZDbUtil
-from engine.db.oceanbase.ocean_base_file_tzzj_db_util import OceanBaseFileTzzjDbUtil
-from engine.db.oceanbase.ocean_base_file_rzqs_db_util import OceanBaseFileRzqsDbUtil
 
-
-
-class OceanBaseDbUtil:
+class OceanBaseFileTzzjDbUtil:
     """
     Oracle 连接池，
     1：可以获取engine和session（单例模式），
@@ -24,16 +19,15 @@ class OceanBaseDbUtil:
     _engine = None
     _session_maker = None
 
-
     @staticmethod
     def get_engine():
-        if OceanBaseDbUtil._engine is None:
+        if OceanBaseFileTzzjDbUtil._engine is None:
             # 1. 配置参数
-            username = config.get_config_value("read_tool.oceanbase.username")
-            password = config.get_config_value("read_tool.oceanbase.password")
-            host = config.get_config_value("read_tool.oceanbase.host")
-            port = config.get_config_value("read_tool.oceanbase.port")
-            database = config.get_config_value("read_tool.oceanbase.database")
+            username = config.get_config_value("read_tool.oceanbase.app.file_tzzj.username")
+            password = config.get_config_value("read_tool.oceanbase.app.file_tzzj.password")
+            host = config.get_config_value("read_tool.oceanbase.app.file_tzzj.host")
+            port = config.get_config_value("read_tool.oceanbase.app.file_tzzj.port")
+            database = config.get_config_value("read_tool.oceanbase.app.file_tzzj.database")
 
             # 2. 转义密码特殊字符
             username = urllib.parse.quote_plus(username)
@@ -45,8 +39,12 @@ class OceanBaseDbUtil:
                 f"oracle+cx_oracle://{username}:{password}@{host}:{port}/{database}"
             )
 
-            ocean_base_pool_size = config.get_config_value("read_tool.oceanbase.pool_size")
-            OceanBaseDbUtil._engine = create_engine(
+
+            ocean_base_pool_size = config.get_config_value("read_tool.oceanbase.app.file_tzzj.pool_size")
+
+
+
+            OceanBaseFileTzzjDbUtil._engine = create_engine(
                 CONN_URL,
                 pool_size=ocean_base_pool_size, # 连接池大小
                 max_overflow=20,  # 额外可溢出连接
@@ -55,30 +53,17 @@ class OceanBaseDbUtil:
                 echo=False  # 打印实际发出的 SQL，调试用
             )
 
-        return OceanBaseDbUtil._engine
-
-    @staticmethod
-    def get_engine_for_app(app):
-        if app == 'file_gz':
-            app_engine = OceanBaseFileGZDbUtil.get_engine()
-        elif app == 'file_tzzj':
-            app_engine = OceanBaseFileTzzjDbUtil.get_engine()
-        elif app == 'file_rzqs':
-            app_engine = OceanBaseFileRzqsDbUtil.get_engine()
-        else:
-            app_engine = OceanBaseDbUtil.get_engine()
-
-        return app_engine
+        return OceanBaseFileTzzjDbUtil._engine
 
     @staticmethod
     def get_session():
-        if OceanBaseDbUtil._session_maker is None:
-            OceanBaseDbUtil._session_maker = sessionmaker(bind=OceanBaseDbUtil.get_engine())
-        return OceanBaseDbUtil._session_maker()
+        if OceanBaseFileTzzjDbUtil._session_maker is None:
+            OceanBaseFileTzzjDbUtil._session_maker = sessionmaker(bind=OceanBaseFileTzzjDbUtil.get_engine())
+        return OceanBaseFileTzzjDbUtil._session_maker()
 
     @staticmethod
     def execute_dml_sql(sql, params=None):
-        with OceanBaseDbUtil.get_session() as session:
+        with OceanBaseFileTzzjDbUtil.get_session() as session:
             try:
                 processed_params = convert_int64_to_int(params)
                 session.execute(text(sql), processed_params)
@@ -88,38 +73,13 @@ class OceanBaseDbUtil:
                 raise e
 
     @staticmethod
-    def execute_dml_sql_for_app(app, sql, params=None):
-        if app == 'file_gz':
-            OceanBaseFileGZDbUtil.execute_dml_sql(sql, params)
-        elif app == 'file_tzzj':
-            OceanBaseFileTzzjDbUtil.execute_dml_sql(sql, params)
-        elif app == 'file_rzqs':
-            OceanBaseFileRzqsDbUtil.execute_dml_sql(sql, params)
-        else:
-            OceanBaseDbUtil.execute_dml_sql(sql, params)
-
-
-    @staticmethod
     def execute_dml_sql_by_context_instance(exec_sql, context_instance):
         if exec_sql is None or len(exec_sql) == 0:
             return
         # 上下文是个map，里面包含了所有变量和参数，刚好可以传给sql语句
         params = context_instance.gen_simple_context_dict()
         sql = replace_sql(exec_sql, context_instance)
-        OceanBaseDbUtil.execute_dml_sql(sql, params)
-
-    @staticmethod
-    def execute_dml_sql_by_context_instance_for_app(app, exec_sql, context_instance):
-        if app == 'file_gz':
-            OceanBaseFileGZDbUtil.execute_dml_sql_by_context_instance(exec_sql, context_instance)
-        elif app == 'file_tzzj':
-            OceanBaseFileTzzjDbUtil.execute_dml_sql_by_context_instance(exec_sql, context_instance)
-        elif app == 'file_rzqs':
-            OceanBaseFileRzqsDbUtil.execute_dml_sql_by_context_instance(exec_sql, context_instance)
-        else:
-            OceanBaseDbUtil.execute_dml_sql_by_context_instance(exec_sql, context_instance)
-
-
+        OceanBaseFileTzzjDbUtil.execute_dml_sql(sql, params)
 
     @staticmethod
     def execute_query_sql(sql, params=None):
@@ -142,25 +102,13 @@ class OceanBaseDbUtil:
         # 执行SQL查询，并传递参数
         result = session.execute(txt(sql), params)
         """
-        with OceanBaseDbUtil.get_session() as session:
+        with OceanBaseFileTzzjDbUtil.get_session() as session:
             result = session.execute(text(sql), params)
             column_names = result.keys()
             column_names = [item.upper() for item in column_names]
             all_data = result.fetchall()
             df = pd.DataFrame(all_data, columns=column_names)
             return df
-
-    @staticmethod
-    def execute_query_sql_for_app(app, sql, params=None):
-        if app == 'file_gz':
-            OceanBaseFileGZDbUtil.execute_query_sql(sql, params)
-        elif app == 'file_tzzj':
-            OceanBaseFileTzzjDbUtil.execute_query_sql(sql, params)
-        elif app == 'file_rzqs':
-            OceanBaseFileRzqsDbUtil.execute_query_sql(sql, params)
-        else:
-            OceanBaseDbUtil.execute_query_sql(sql, params)
-
 
     @staticmethod
     def execute_query_sql_by_context_instance(exec_sql, context_instance):
@@ -171,18 +119,6 @@ class OceanBaseDbUtil:
         sql = replace_sql(exec_sql, context_instance)
         df = execute_auto_query_sql(sql, params)
         return df
-
-    @staticmethod
-    def execute_query_sql_by_context_instance_for_app(app, exec_sql, context_instance):
-        if app == 'file_gz':
-            OceanBaseFileGZDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
-        elif app == 'file_tzzj':
-            OceanBaseFileTzzjDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
-        elif app == 'file_rzqs':
-            OceanBaseFileRzqsDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
-        else:
-            OceanBaseDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
-
 
 
 def execute_auto_query_sql(sql, params=None):
@@ -205,7 +141,7 @@ def execute_auto_query_sql(sql, params=None):
     # 执行SQL查询，并传递参数
     result = session.execute(txt(sql), params)
     """
-    with OceanBaseDbUtil.get_session() as session:
+    with OceanBaseFileTzzjDbUtil.get_session() as session:
         result = session.execute(text(sql), params)
         column_names = result.keys()
         column_names = [item.upper() for item in column_names]
@@ -225,7 +161,7 @@ def convert_int64_to_int(params):
 
 
 def execute_auto_get_all_product_dml_sql(sql, params=None):
-    with OceanBaseDbUtil.get_session() as session:
+    with OceanBaseFileTzzjDbUtil.get_session() as session:
         try:
             processed_params = convert_int64_to_int(params)
             session.execute(text(sql), processed_params)

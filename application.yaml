@@ -13,6 +13,28 @@ read_tool: # 读数工具专有配置
     port: 1521
     database: dm_tenant1
     pool_size: 3  # 连接池大小
+    app:
+      file_gz:
+        username: DOUMING
+        password: QHv_{0VKiN
+        host: t7ql6qlkari3k-mi.aliyun-cn-shenzhen-internet.oceanbase.cloud
+        port: 1521
+        database: dm_tenant1
+        pool_size: 3  # 连接池大小
+      file_tzzj:
+        username: DOUMING
+        password: QHv_{0VKiN
+        host: t7ql6qlkari3k-mi.aliyun-cn-shenzhen-internet.oceanbase.cloud
+        port: 1521
+        database: dm_tenant1
+        pool_size: 3  # 连接池大小
+      file_rzqs:
+        username: DOUMING
+        password: QHv_{0VKiN
+        host: t7ql6qlkari3k-mi.aliyun-cn-shenzhen-internet.oceanbase.cloud
+        port: 1521
+        database: dm_tenant1
+        pool_size: 3  # 连接池大小
 #  oceanbase:
 #    username: Y7PHFUND_REALTIME@UAT_GZ01#UAT_Cluster05
 #    password: aaAA11##2025

@@ -46,7 +46,6 @@ def move_data(file_type, file_path_and_name, flow_node, context_instance):
         # 脚本实现
         script_code = flow_node.get('scptCode')
         exec(script_code)
-
     else:
         pass
 
@@ -83,6 +82,5 @@ def move_bigfile_data(file_type, file_path_and_name, flow_node, context_instance
         # 脚本实现
         script_code = flow_node.get('scptCode')
         exec(script_code)
-
     else:
         pass

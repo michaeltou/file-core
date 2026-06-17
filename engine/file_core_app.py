@@ -2,6 +2,8 @@ import uuid
 import json
 from flask import Flask, request, render_template
 from waitress import serve
+
+from engine.clean.clean_engine import CleanEngine
 from engine.cnst.NodeType import *
 
 from engine.move_data_node.move_data_engine import move_data,move_bigfile_data
@@ -27,6 +29,8 @@ from engine.util.md5 import get_file_md5
 from engine.util.redis.redis_util import RedisUtil
 from sqlalchemy import create_engine
 # from engine.db.oracle_read_tool_db_util import execute_ddl_sql
+
+from engine.export.export_file import *
 
 # WAITRESS  Werkzeug  使用 Gunicorn 启动多个实例
 app = Flask(__name__)
@@ -145,6 +149,84 @@ def execute_file_script(script_command_json_str = None):
     return build_success_result("script executed successfully.")
 
 
+@app.route('/execute/export', methods=['POST'])
+def execute_read(read_export_json_str = None):
+    my_uuid = generate_uuid()
+    if read_export_json_str is None:
+        export_command = request.get_json()
+    else:
+        # 把 JSON 字符串转换回 Python 对象
+        export_command = json.loads(read_export_json_str)
+    process_id = os.getpid()
+    # 获取当前线程号
+    thread_id = threading.current_thread().ident
+
+    log.info('UUID: %s,接收到导出请求,读数指令export_command是: %s,进程ID：%s,线程ID：%s',
+             my_uuid, export_command, process_id, thread_id)
+    sql_script_code = export_command.get('sqlScptCode')
+    target_path = export_command.get('targetPath')
+    export_file_name = export_command.get('exportFileName')
+    file_export_fmt = export_command.get('fileExportFmt')
+    export_type = export_command.get('exportType')
+    app = export_command.get('app')
+
+    context_instance = Context()
+    context_instance.set('[SQL_SCRIPT_CODE]', sql_script_code)
+    context_instance.set('[TARGET_PATH]', target_path)
+    context_instance.set('[EXPORT_FILE_NAME]', export_file_name)
+    context_instance.set('[FILE_EXPORT_FMT]', file_export_fmt)
+    context_instance.set('[EXPORT_TYPE]', export_type)
+    context_instance.set('[APP]', app)
+
+    context_instance.set('[UUID]', my_uuid)
+    context_map = export_command.get('contextMap')
+    # 把传入的context_map 放到上下文里面
+    if context_map is not None:
+        for key, value in context_map.items():
+            context_instance.set('[' + key + ']', value)
+
+    start_time = time.time()
+
+
+    try:
+        api_limit_call()
+        export(context_instance)
+
+        read_data = {"dataList": 1, "fieldNameList": 1}
+        end_time = time.time()
+        log.info('UUID: %s,导出请求,总体耗时：%s s', my_uuid, end_time - start_time)
+        return build_success_result(read_data)
+    except RateLimitException as e:
+        message = 'uuid:%s,发生限流,读数请求处理失败,异常信息：%s' % (my_uuid, 'access limit is exceeded.')
+        log.error(message)
+        # end_time = get_local_millisecond_timestamp()
+        # performace.insert_performance_log(context_instance=context_instance,
+        #                                   phase=PhaseType.ALL.value,
+        #                                   status=StatusType.FAILED.value,
+        #                                   message=message,
+        #                                   start_time=start_time,
+        #                                   end_time=end_time)
+        return build_limit_error_result(f'access limit is exceeded.')
+    except Exception as e:
+        check_logic_result = context_instance.get('check_logic_result')
+        if check_logic_result is False:
+            check_logic_message = context_instance.get('check_logic_message')
+            message = 'uuid:%s,检查逻辑检查不通过,详细信息是:%s' % (my_uuid, check_logic_message)
+        else:
+            stack_trace = traceback.format_exc()
+            if 'resource busy' in stack_trace:
+                stack_trace = '文件正在被其他进程占用，请稍后再试。'
+            message = 'uuid:%s,读数请求处理失败,异常信息：%s' % (my_uuid, stack_trace)
+        log.error(message)
+        # end_time = get_local_millisecond_timestamp()
+        # performace.insert_performance_log(context_instance=context_instance,
+        #                                   phase=PhaseType.ALL.value,
+        #                                   status=StatusType.FAILED.value,
+        #                                   message=message,
+        #                                   start_time=start_time,
+        #                                   end_time=end_time)
+
+        return build_error_result(message)
 
 @app.route('/execute/read', methods=['POST'])
 def execute_read(read_command_json_str = None):
@@ -179,6 +261,8 @@ def execute_read(read_command_json_str = None):
     context_map = read_command.get('contextMap')
     flow_node_list = read_rule.get('flowNodeList')
     invoke_mode = read_command.get('invokeMode')
+    app = read_command.get('app')
+
 
 
     context_instance = Context()
@@ -194,18 +278,17 @@ def execute_read(read_command_json_str = None):
     context_instance.set('[UUID]', my_uuid)
     context_instance.set('[READ_COMMAND]',read_command)
     context_instance.set('[ENCODING]', encoding)
+    context_instance.set('[APP]', app)
+
     # 把传入的context_map 放到上下文里面
     if context_map is not None:
         for key, value in context_map.items():
             context_instance.set('['+ key + ']', value)
 
 
-
     start_time = time.time() #get_local_millisecond_timestamp()
 
-    # ---------start
 
-    # ---------end
     try:
         # 根据外部传入的限流配置，决定是否进行限流,need_rate_limit_control为1时，表示需要限流,为2时表示不需要限流
         if need_rate_limit_control is not None and need_rate_limit_control == 1:
@@ -217,14 +300,9 @@ def execute_read(read_command_json_str = None):
             file_type = flow_node.get('fileFmt')
             move_data(file_type, file_path_and_name, flow_node, context_instance)
 
-        result_start_time = time.time()
         data_list = context_instance.get('[__DATA_LIST__]')
         field_name_list = context_instance.get('[__FIELD_NAME_LIST__]')
         read_data = {"dataList": data_list, "fieldNameList": field_name_list}
-        result_end_time = time.time()
-        result_duration = result_end_time - result_start_time
-        log.info('UUID: %s,父UUID: %s,构造结果耗时：%s s', my_uuid, parent_uuid, result_duration)
-
         end_time = time.time() #get_local_millisecond_timestamp()
         # performace.insert_performance_log(context_instance=context_instance,
         #                                   phase=PhaseType.ALL.value,
@@ -246,6 +324,7 @@ def execute_read(read_command_json_str = None):
         #                                   end_time=end_time)
         return build_limit_error_result(f'access limit is exceeded.')
     except Exception as e:
+        #CleanEngine.process_clean_before_import(flow_node_config,context_instance)
         check_logic_result = context_instance.get('check_logic_result')
         if check_logic_result is False:
             check_logic_message = context_instance.get('check_logic_message')
