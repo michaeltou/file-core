@@ -150,7 +150,7 @@ def execute_file_script(script_command_json_str = None):
 
 
 @app.route('/execute/export', methods=['POST'])
-def execute_read(read_export_json_str = None):
+def execute_export(read_export_json_str = None):
     my_uuid = generate_uuid()
     if read_export_json_str is None:
         export_command = request.get_json()
@@ -187,7 +187,6 @@ def execute_read(read_export_json_str = None):
 
     start_time = time.time()
 
-
     try:
         api_limit_call()
         export(context_instance)
@@ -197,35 +196,13 @@ def execute_read(read_export_json_str = None):
         log.info('UUID: %s,导出请求,总体耗时：%s s', my_uuid, end_time - start_time)
         return build_success_result(read_data)
     except RateLimitException as e:
-        message = 'uuid:%s,发生限流,读数请求处理失败,异常信息：%s' % (my_uuid, 'access limit is exceeded.')
+        message = 'uuid:%s,发生限流,导出请求处理失败,异常信息：%s' % (my_uuid, 'access limit is exceeded.')
         log.error(message)
-        # end_time = get_local_millisecond_timestamp()
-        # performace.insert_performance_log(context_instance=context_instance,
-        #                                   phase=PhaseType.ALL.value,
-        #                                   status=StatusType.FAILED.value,
-        #                                   message=message,
-        #                                   start_time=start_time,
-        #                                   end_time=end_time)
         return build_limit_error_result(f'access limit is exceeded.')
     except Exception as e:
-        check_logic_result = context_instance.get('check_logic_result')
-        if check_logic_result is False:
-            check_logic_message = context_instance.get('check_logic_message')
-            message = 'uuid:%s,检查逻辑检查不通过,详细信息是:%s' % (my_uuid, check_logic_message)
-        else:
-            stack_trace = traceback.format_exc()
-            if 'resource busy' in stack_trace:
-                stack_trace = '文件正在被其他进程占用，请稍后再试。'
-            message = 'uuid:%s,读数请求处理失败,异常信息：%s' % (my_uuid, stack_trace)
+        stack_trace = traceback.format_exc()
+        message = 'uuid:%s,读数请求处理失败,异常信息：%s' % (my_uuid, stack_trace)
         log.error(message)
-        # end_time = get_local_millisecond_timestamp()
-        # performace.insert_performance_log(context_instance=context_instance,
-        #                                   phase=PhaseType.ALL.value,
-        #                                   status=StatusType.FAILED.value,
-        #                                   message=message,
-        #                                   start_time=start_time,
-        #                                   end_time=end_time)
-
         return build_error_result(message)
 
 @app.route('/execute/read', methods=['POST'])
@@ -263,8 +240,6 @@ def execute_read(read_command_json_str = None):
     invoke_mode = read_command.get('invokeMode')
     app = read_command.get('app')
 
-
-
     context_instance = Context()
     context_instance.set('[FUND_ID]', fund_id)
     context_instance.set('[FUND_CODE]', fund_code)
@@ -285,9 +260,7 @@ def execute_read(read_command_json_str = None):
         for key, value in context_map.items():
             context_instance.set('['+ key + ']', value)
 
-
-    start_time = time.time() #get_local_millisecond_timestamp()
-
+    start_time = time.time()
 
     try:
         # 根据外部传入的限流配置，决定是否进行限流,need_rate_limit_control为1时，表示需要限流,为2时表示不需要限流
@@ -324,7 +297,8 @@ def execute_read(read_command_json_str = None):
         #                                   end_time=end_time)
         return build_limit_error_result(f'access limit is exceeded.')
     except Exception as e:
-        #CleanEngine.process_clean_before_import(flow_node_config,context_instance)
+        flow_node_config = context_instance.get('[FLOW_NODE_CONFIG]')
+        CleanEngine.process_clean_before_import(flow_node_config,context_instance)
         check_logic_result = context_instance.get('check_logic_result')
         if check_logic_result is False:
             check_logic_message = context_instance.get('check_logic_message')

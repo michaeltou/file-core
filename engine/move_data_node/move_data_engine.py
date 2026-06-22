@@ -19,10 +19,12 @@ def move_data(file_type, file_path_and_name, flow_node, context_instance):
         if file_type == FileType.DBF.value:
             # dbf文件节点配置
             flow_node_dbf_config = flow_node['fileDbfParseRuleDTO']
+            context_instance.set('[FLOW_NODE_CONFIG]', flow_node_dbf_config)
             # 调用dbf文件节点的move_dbf方法
             move_dbf(flow_node, file_path_and_name, flow_node_dbf_config,field_mapping_config_list, context_instance)
         elif file_type == FileType.TXT.value:
             flow_node_txt_config = flow_node['fileTxtParseRuleDTO']
+            context_instance.set('[FLOW_NODE_CONFIG]', flow_node_txt_config)
             move_txt(flow_node, file_path_and_name, flow_node_txt_config, field_mapping_config_list, context_instance)
         elif file_type == FileType.XML.value:
             pass
@@ -30,13 +32,16 @@ def move_data(file_type, file_path_and_name, flow_node, context_instance):
             #move_xml(flow_node, file_path_and_name, flow_node_xml_config, field_mapping_config_list, context_instance)
         elif file_type == FileType.EXCEL.value:
             flow_node_excel_config = flow_node['fileExcelParseRuleDTO']
+            context_instance.set('[FLOW_NODE_CONFIG]', flow_node_excel_config)
             move_excel(flow_node, file_path_and_name, flow_node_excel_config, field_mapping_config_list, context_instance)
         elif file_type == FileType.CSV.value:
             flow_node_csv_config = flow_node['fileCsvParseRuleDTO']
+            context_instance.set('[FLOW_NODE_CONFIG]', flow_node_csv_config)
             move_csv(flow_node, file_path_and_name, flow_node_csv_config, field_mapping_config_list, context_instance)
             pass
         elif file_type == FileType.JSON.value:
             flow_node_json_config = flow_node['fileJsonParseRuleDTO']
+            context_instance.set('[FLOW_NODE_CONFIG]', flow_node_json_config)
             json_data_str = context_instance.get('[JSON_DATA]')
             move_json(flow_node, json_data_str, flow_node_json_config, field_mapping_config_list, context_instance)
         else:
