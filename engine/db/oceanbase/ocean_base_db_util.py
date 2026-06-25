@@ -175,13 +175,13 @@ class OceanBaseDbUtil:
     @staticmethod
     def execute_query_sql_by_context_instance_for_app(app, exec_sql, context_instance):
         if app == 'file_gz':
-            OceanBaseFileGZDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
+           return OceanBaseFileGZDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
         elif app == 'file_tzzj':
-            OceanBaseFileTzzjDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
+            return OceanBaseFileTzzjDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
         elif app == 'file_rzqs':
-            OceanBaseFileRzqsDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
+            return OceanBaseFileRzqsDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
         else:
-            OceanBaseDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
+            return OceanBaseDbUtil.execute_query_sql_by_context_instance(exec_sql, context_instance)
 
 
 

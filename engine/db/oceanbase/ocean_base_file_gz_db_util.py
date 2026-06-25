@@ -8,6 +8,7 @@ import numpy as np
 import engine.util.config as config
 import urllib.parse
 from engine.util.sql.SqlUtil import replace_sql
+import engine.util.log as log
 
 
 class OceanBaseFileGZDbUtil:
@@ -43,7 +44,7 @@ class OceanBaseFileGZDbUtil:
             ocean_base_pool_size = config.get_config_value("read_tool.oceanbase.app.file_gz.pool_size")
 
 
-
+            log.info('获取到的连接CONN_URL=%s', CONN_URL)
             OceanBaseFileGZDbUtil._engine = create_engine(
                 CONN_URL,
                 pool_size=ocean_base_pool_size, # 连接池大小
@@ -117,37 +118,40 @@ class OceanBaseFileGZDbUtil:
         # 上下文是个map，里面包含了所有变量和参数，刚好可以传给sql语句
         params = context_instance.gen_simple_context_dict()
         sql = replace_sql(exec_sql, context_instance)
-        df = execute_auto_query_sql(sql, params)
+        # log.info('替换后的sql是:%s',sql)
+        df = OceanBaseFileGZDbUtil.execute_auto_query_sql(sql, params)
+        # log.info('执行后的df值是:%s',df)
         return df
 
-
-def execute_auto_query_sql(sql, params=None):
-    """ 
-    :param sql: 
-    :param params: 
-    :return: 
-    """"""
-    执行SQL查询语句，返回结果集
-    :param sql: 执行的SQL语句
-    :param params: 字典类型的参数
-    :return:  返回DataFrame
-    
-    # 定义SQL查询语句，使用占位符 :param_name
-    sql = "SELECT * FROM my_table WHERE column_name = :param_name"
-    
-    # 定义参数字典
-    params = {"param_name": "value"}
-    
-    # 执行SQL查询，并传递参数
-    result = session.execute(txt(sql), params)
-    """
-    with OceanBaseFileGZDbUtil.get_session() as session:
-        result = session.execute(text(sql), params)
-        column_names = result.keys()
-        column_names = [item.upper() for item in column_names]
-        all_data = result.fetchall()
-        df = pd.DataFrame(all_data, columns=column_names)
-        return df
+    @staticmethod
+    def execute_auto_query_sql(sql, params=None):
+        """ 
+        :param sql: 
+        :param params: 
+        :return: 
+        """"""
+        执行SQL查询语句，返回结果集
+        :param sql: 执行的SQL语句
+        :param params: 字典类型的参数
+        :return:  返回DataFrame
+        
+        # 定义SQL查询语句，使用占位符 :param_name
+        sql = "SELECT * FROM my_table WHERE column_name = :param_name"
+        
+        # 定义参数字典
+        params = {"param_name": "value"}
+        
+        # 执行SQL查询，并传递参数
+        result = session.execute(txt(sql), params)
+        """
+        with OceanBaseFileGZDbUtil.get_session() as session:
+            result = session.execute(text(sql), params)
+            column_names = result.keys()
+            column_names = [item.upper() for item in column_names]
+            all_data = result.fetchall()
+            log.info('执行了OceanBaseFileGZDbUtil.execute_auto_query_sql')
+            df = pd.DataFrame(all_data, columns=column_names)
+            return df
 
 
 def convert_int64_to_int(params):
@@ -174,7 +178,7 @@ def execute_auto_get_all_product_dml_sql(sql, params=None):
 def test_query_sql():
     sql = "select pkg_pubfun.pkgsf_pubfun_getgycs(123,'JCSZ_JKSJDQFS') sjdqfs ,:key1 as key1,:key2 as key2 from dual"
     params = {"key1": "value1", "key2": "value2"}
-    df = execute_auto_query_sql(sql, params)
+    df = OceanBaseFileGZDbUtil.execute_auto_query_sql(sql, params)
     print(df)
 
 

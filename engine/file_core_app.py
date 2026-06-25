@@ -149,6 +149,23 @@ def execute_file_script(script_command_json_str = None):
     return build_success_result("script executed successfully.")
 
 
+@app.route('/execute/export/test', methods=['POST'])
+def execute_export_test(read_export_json_str = None):
+    if read_export_json_str is None:
+        export_command = request.get_json()
+    else:
+        # 把 JSON 字符串转换回 Python 对象
+        export_command = json.loads(read_export_json_str)
+
+    sql_script_code = export_command.get('sqlScptCode')
+    app = export_command.get('app')
+
+    context_instance = Context()
+    context_instance.set('[SQL_SCRIPT_CODE]', sql_script_code)
+
+    context_instance.set('[APP]', app)
+    export(context_instance)
+
 @app.route('/execute/export', methods=['POST'])
 def execute_export(read_export_json_str = None):
     my_uuid = generate_uuid()

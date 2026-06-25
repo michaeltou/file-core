@@ -12,6 +12,7 @@ def export(context_instance):
     df = pd.DataFrame()
     if export_type == 'SQL':
         df = build_sql_dataframe(context_instance)
+        log.info('Built SQL dataframe,记录数量：%s',len(df))
 
 
     file_export_fmt = context_instance.get('[FILE_EXPORT_FMT]')
@@ -29,6 +30,7 @@ def export(context_instance):
 def build_sql_dataframe(context_instance):
     sql = context_instance.get('[SQL_SCRIPT_CODE]')
     app = context_instance.get('[APP]')
+    # log.info("执行sql记录: app=%s, sql=%s",app,sql)
     df = OceanBaseDbUtil.execute_query_sql_by_context_instance_for_app(app, sql,context_instance)
     return df
 
